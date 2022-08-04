@@ -23,6 +23,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="BoulderDash.py" />
+    <Compile Include="Element.py" />
     <Compile Include="Miner.py" />
     <Compile Include="Stage.py" />
   </ItemGroup>

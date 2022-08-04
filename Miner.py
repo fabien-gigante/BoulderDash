@@ -1,19 +1,12 @@
 import arcade
+from Element import *
 
-MOVEMENT_SPEED = 32
-
-class Miner(arcade.Sprite):
+class Miner(Element):
     def __init__(self, game, x, y):
-        super().__init__(":resources:images/enemies/bee.png")
-        self.game = game
-        self.center_x = x ; self.center_y = y
+        super().__init__(game, "Miner", x, y)
 
-    def on_update(self, delta_time):
-        if arcade.key.LEFT in self.game.keys:
-          self.center_x -= MOVEMENT_SPEED
-        elif arcade.key.RIGHT in self.game.keys:
-          self.center_x += MOVEMENT_SPEED
-        elif arcade.key.UP in self.game.keys:
-          self.center_y += MOVEMENT_SPEED
-        elif arcade.key.DOWN in self.game.keys:
-          self.center_y -= MOVEMENT_SPEED
+    def tick(self):
+        if   arcade.key.LEFT  in self.game.keys:  self.move(-1, 0)
+        elif arcade.key.RIGHT in self.game.keys:  self.move(+1, 0)
+        elif arcade.key.UP    in self.game.keys:  self.move(0, +1)
+        elif arcade.key.DOWN  in self.game.keys:  self.move(0, -1)
