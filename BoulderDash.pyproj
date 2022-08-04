@@ -24,6 +24,7 @@
   <ItemGroup>
     <Compile Include="BoulderDash.py" />
     <Compile Include="Miner.py" />
+    <Compile Include="Stage.py" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="README.md" />

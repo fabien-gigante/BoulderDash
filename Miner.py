@@ -1,11 +1,10 @@
 import arcade
-from BoulderDash import *
 
 TILE_SCALING = 0.5
 MOVEMENT_SPEED = 5
 
 class Miner(arcade.Sprite):
-    def __init__(self, game: Game, x, y):
+    def __init__(self, game, x, y):
         super().__init__(":resources:images/enemies/bee.png", TILE_SCALING)
         self.game = game
         self.center_x = x ; self.center_y = y

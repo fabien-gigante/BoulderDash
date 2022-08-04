@@ -1,5 +1,6 @@
 import arcade
 from Miner import *
+from Stage import *
 
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
@@ -11,8 +12,10 @@ class Game(arcade.Window):
         self.keys = []
         self.sprites = None
         self.camera = None
+        self.stage = None
 
     def setup(self):
+        self.stage = Stage(self, "level1.txt")
         self.sprites = arcade.SpriteList()
         self.sprites.append( Miner(self, 196, 270) )
 
@@ -22,12 +25,14 @@ class Game(arcade.Window):
     def on_draw(self):
         self.camera.use()
         self.clear()
+        self.stage.draw()
         self.sprites.draw()
 
     def on_key_press(self, key, modifiers): self.keys.append(key)
     def on_key_release(self, key, modifiers): self.keys.remove(key)
     def on_update(self, delta_time):
         for sprite in self.sprites: sprite.on_update(delta_time)
+        self.stage.on_update(delta_time)
 
 def main():
     Game().setup()
