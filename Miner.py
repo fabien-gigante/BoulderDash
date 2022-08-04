@@ -1,5 +1,5 @@
 import arcade
-from BoulderDash import Game
+from BoulderDash import *
 
 TILE_SCALING = 0.5
 MOVEMENT_SPEED = 5
