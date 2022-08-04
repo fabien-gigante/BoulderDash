@@ -28,6 +28,19 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="README.md" />
+    <Content Include="Tiles\Boulder64-0.png" />
+    <Content Include="Tiles\Boulder8-0.png" />
+    <Content Include="Tiles\Diamond64-0.png" />
+    <Content Include="Tiles\Diamond8-0.png" />
+    <Content Include="Tiles\Miner64-0.png" />
+    <Content Include="Tiles\Miner8-0.png" />
+    <Content Include="Tiles\Soil64-0.png" />
+    <Content Include="Tiles\Soil8-0.png" />
+    <Content Include="Tiles\Wall64-0.png" />
+    <Content Include="Tiles\Wall8-0.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Tiles\" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in
