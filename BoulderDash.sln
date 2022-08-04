@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.3.32714.290
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "BoudlerDash", "BoudlerDash.pyproj", "{63C9184A-5974-4A96-8349-0EF05B17D283}"
+Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "BoulderDash", "BoulderDash.pyproj", "{63C9184A-5974-4A96-8349-0EF05B17D283}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
