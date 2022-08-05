@@ -30,7 +30,7 @@ class Cave:
                 elif c == 'X': tile = Exit(self.game, j ,i)
                 elif c == 'f': tile = Enemy(self.game, j ,i)
                 elif c == '_': pass
-                else: tile = Unknown(self.game, j ,i) # TODO : 'f', 'a', 'b', 'm' ...
+                else: tile = Unknown(self.game, j ,i) # TODO : 'a', 'b', 'm' ...
                 self.tiles[i].append(tile)
     
     def next_level(self, level : Optional[int] = None) -> None:

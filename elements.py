@@ -5,7 +5,7 @@ from boulder_dash import Game
 
 TILE_SIZE = 64
 TILE_SCALE = 0.5
-MAX_SPEED = 16 # squares per second
+DEFAULT_SPEED = 8 # squares per second
 KEY_UP = 0
 KEY_LEFT = 1
 KEY_DOWN = 2
@@ -16,9 +16,10 @@ class Element(arcade.Sprite):
         super().__init__("Tiles/" + type(self).__name__ + str(TILE_SIZE) + "-0.png", TILE_SCALE)
         for i in range(1,n+1): 
             self.append_texture(arcade.load_texture("Tiles/" + type(self).__name__ + str(TILE_SIZE) + "-" + str(i) + ".png"))
-        self.game = game ;
+        self.game = game
         self.x = x ; self.y = y;
-        self.wait = 0 ; self.moved = self.moving = False
+        self.wait = 0 ; self.speed = DEFAULT_SPEED
+        self.moved = self.moving = False
         self.compute_pos()
     
     def compute_pos(self) -> None:
@@ -31,7 +32,7 @@ class Element(arcade.Sprite):
     def try_move(self, ix: int, iy: int)  -> bool:
         if self.game.cave.try_move(self, self.x + ix, self.y + iy):
             self.compute_pos()
-            self.wait = 1 / MAX_SPEED
+            self.wait = 1 / self.speed
             self.moved = True
             return True
         return False
@@ -97,7 +98,7 @@ class Diamond(Ore):
 class Miner(Element):
     def __init__(self, game: Game, x: int, y: int, id: int) -> None:
         super().__init__(game, x, y)
-        self.pushing = 0 ; self.score = 0
+        self.pushing = 0 ; self.score = 0;  self.speed *= 2
         self.controls = \
             (arcade.key.Z, arcade.key.Q,  arcade.key.S, arcade.key.D) if id == 1 \
             else (arcade.key.I, arcade.key.J,  arcade.key.K, arcade.key.L) if id == 2 \
@@ -127,7 +128,7 @@ class Miner(Element):
         pushed = self.game.cave.at(self.x + ix, self.y)
         if not isinstance(pushed, Boulder): return False
         if self.pushing != ix: 
-           self.pushing = ix; self.wait = 1 / MAX_SPEED
+           self.pushing = ix; self.wait = 1 / self.speed
            return False
         if pushed.try_move(ix, 0): return self.try_move(ix, 0)
         return False
@@ -159,7 +160,7 @@ class Exit(Element):
 class Enemy(Element):
     def __init__(self, game: Game, x: int, y: int) -> None:
         super().__init__(game, x, y)
-        self.d = [-1,0]
+        self.dir = [-1,0]
 
     def can_be_penetrated(self, by: Element) -> bool:
         return isinstance(by, Ore)
@@ -169,13 +170,13 @@ class Enemy(Element):
             self.game.cave.explode(self.x, self.y)
 
     def tick(self) -> None:
-        if self.try_move(self.d[1], -self.d[0]):
-            self.d = [self.d[1], -self.d[0]]
-        elif self.try_move(self.d[0], self.d[1]):
-            self.d = self.d
-        elif self.try_move(-self.d[1], self.d[0]):
-            self.d = [-self.d[1], self.d[0]]
-        elif self.try_move(-self.d[0], -self.d[1]):
-            self.d = [-self.d[0], -self.d[1]]
+        if self.try_move(self.dir[1], -self.dir[0]):
+            self.dir = [self.dir[1], -self.dir[0]]
+        elif self.try_move(self.dir[0], self.dir[1]):
+            self.dir = self.dir
+        elif self.try_move(-self.dir[1], self.dir[0]):
+            self.dir = [-self.dir[1], self.dir[0]]
+        elif self.try_move(-self.dir[0], -self.dir[1]):
+            self.dir = [-self.dir[0], -self.dir[1]]
 
     def on_destroy(self) -> None: self.game.cave.explode(self.x, self.y)
