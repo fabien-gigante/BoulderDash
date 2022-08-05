@@ -27,11 +27,16 @@ class Stage:
         if x < 0 or y < 0 or x >= STAGE_WIDTH or y >= STAGE_HEIGHT: return None
         return self.tiles[y][x]
 
-    def try_move(self, element, x, y):
+    def can_move(self, element, x, y):
         if x < 0 or y < 0 or x >= STAGE_WIDTH or y >= STAGE_HEIGHT: return False
         tile = self.at(x,y)
         if tile != None and not tile.can_enter(element): return False
         if not element.can_move(tile): return False
+        return True
+
+    def try_move(self, element, x, y):
+        if not self.can_move(element, x, y): return False
+        if x != element.x and y != element.y and not self.can_move(element, x, element.y): return False
         self.tiles[element.y][element.x] = None
         self.tiles[y][x] = element
         element.x = x ; element.y = y

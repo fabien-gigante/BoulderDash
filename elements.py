@@ -49,11 +49,16 @@ class Boulder(Element):
         super().__init__(game, "Boulder", x, y)
 
     def tick(self):
-        self.try_move(0, -1)
+        if not self.try_move(0, -1):
+            if not self.try_move(-1, -1):
+                self.try_move(+1, -1)
 
 class Diamond(Element):
     def __init__(self, game, x, y):
         super().__init__(game, "Diamond", x, y)
+
+    def tick(self):
+        if not self.try_move(0, -1):
 
 class Miner(Element):
     def __init__(self, game, x, y):
