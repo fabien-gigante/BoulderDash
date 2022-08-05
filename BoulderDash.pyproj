@@ -26,6 +26,7 @@
     <Compile Include="elements.py" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="caves.py" />
     <Content Include="README.md" />
     <Content Include="Tiles\Boulder64-0.png" />
     <Content Include="Tiles\Boulder8-0.png" />
@@ -35,6 +36,7 @@
     <Content Include="Tiles\Miner8-0.png" />
     <Content Include="Tiles\Soil64-0.png" />
     <Content Include="Tiles\Soil8-0.png" />
+    <Content Include="Tiles\Unknown64-0.png" />
     <Content Include="Tiles\Wall64-0.png" />
     <Content Include="Tiles\Wall8-0.png" />
   </ItemGroup>

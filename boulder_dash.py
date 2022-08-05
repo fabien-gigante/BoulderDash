@@ -2,32 +2,36 @@ import arcade
 import random
 from typing import Optional
 from elements import *
+from caves import *
 
-STAGE_WIDTH = 24
-STAGE_HEIGHT = 16
-SCREEN_WIDTH = 48 * STAGE_WIDTH
-SCREEN_HEIGHT = 48 * STAGE_HEIGHT
+CAVE_WIDTH = 40
+CAVE_HEIGHT = 22
+SCREEN_WIDTH = 32 * CAVE_WIDTH
+SCREEN_HEIGHT = 32 * CAVE_HEIGHT
 SCREEN_TITLE = "Boulder Dash"
 
-class Stage:
+class Cave:
     def __init__(self, game: "Game", level: int) -> None:
-        self.game = game
+        self.game = game ; self.nb_players = 0
         self.level = level ; self.tiles = []
-        for i in range(0,STAGE_HEIGHT):
+        for i in range(0,CAVE_HEIGHT):
             self.tiles.append([])
-            for j in range(0,STAGE_WIDTH):
+            for j in range(0,CAVE_WIDTH):
                 tile = None
-                dice = random.randint(0, 8) 
-                if dice == 1: tile = Soil(game, j, i)
-                elif dice == 2: tile = Wall(game, j, i)
-                elif dice == 3: tile = Boulder(game, j, i)
-                elif dice == 4: tile = Diamond(game, j, i)
+                c = CAVES[level-1][CAVE_HEIGHT-1-i][j]
+                if   c == 'w': tile = Wall(game, j, i) # TODO : brick wall
+                elif c == 'W': tile = Wall(game, j, i) # TODO : metal wall
+                elif c == '.': tile = Soil(game, j, i)
+                elif c == 'r': tile = Boulder(game, j, i)
+                elif c == 'd': tile = Diamond(game, j, i)
+                elif c == 'E': tile = Miner(game, j, i, self.nb_players); self.nb_players += 1
+                elif c == 'X': tile = Unknown(game, j ,i) # TODO : exit
+                elif c == '_': pass
+                else: tile = Unknown(game, j ,i) # TODO : 'f', 'a', 'b', 'm' ...
                 self.tiles[i].append(tile)
-        self.tiles[5][5] = Miner(game, 5, 5, 0)
-        self.tiles[15][10] = Miner(game, 15, 10, 1)
     
     def within_bounds(self, x: int ,y: int ) -> bool:
-        return x >= 0 and y >= 0 and x < STAGE_WIDTH and y < STAGE_HEIGHT
+        return x >= 0 and y >= 0 and x < CAVE_WIDTH and y < CAVE_HEIGHT
 
     def at(self, x: int , y: int ) -> Optional["Element"]:
         return self.tiles[y][x] if self.within_bounds(x,y) else None
@@ -64,22 +68,22 @@ class Game(arcade.Window):
         super().__init__(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_TITLE)
         self.keys = []
         self.camera = None
-        self.stage = None
+        self.Cave = None
 
     def setup(self) -> None:
-        self.stage = Stage(self, 1)
+        self.Cave = Cave(self, 1)
         arcade.set_background_color(arcade.color.BLACK);
         self.camera = arcade.Camera(SCREEN_WIDTH, SCREEN_HEIGHT)
 
     def on_draw(self) -> None:
         self.camera.use()
         self.clear()
-        self.stage.draw()
+        self.Cave.draw()
 
     def on_key_press(self, key, modifiers): self.keys.append(key)
     def on_key_release(self, key, modifiers): self.keys.remove(key)
     def on_update(self, delta_time):
-        self.stage.on_update(delta_time)
+        self.Cave.on_update(delta_time)
 
 def main() -> None:
     Game().setup()
