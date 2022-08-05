@@ -1,12 +1,15 @@
 import arcade
 import random
-from Element import *
+from elements import *
 
-STAGE_HEIGHT = 12
 STAGE_WIDTH = 16
+STAGE_HEIGHT = 12
+SCREEN_WIDTH = 32 * STAGE_WIDTH
+SCREEN_HEIGHT = 32 * STAGE_HEIGHT
+SCREEN_TITLE = "Boulder Dash"
 
 class Stage:
-    def __init__(self, game, file: str):
+    def __init__(self, game, level):
         self.game = game
         self.tiles = []
         for i in range(0,STAGE_HEIGHT):
@@ -17,9 +20,7 @@ class Stage:
                 if dice == 1: tile = Soil(game, j, i)
                 elif dice == 2: tile = Wall(game, j, i)
                 self.tiles[i].append(tile)
-
-        self.start_x = 5 ; self.start_y = 5
-        self.tiles[self.start_y][self.start_x] = None
+        self.tiles[5][5] = Miner(game, 5, 5)
 
     def move(self, element, x, y):
         if x < 0 or y < 0 or x >= STAGE_WIDTH or y >= STAGE_HEIGHT:
@@ -42,3 +43,32 @@ class Stage:
         for row in self.tiles:
             for tile in row:
                 if tile != None: tile.on_update(delta_time)
+
+class Game(arcade.Window):
+    def __init__(self):
+        super().__init__(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_TITLE)
+        self.keys = []
+        self.camera = None
+        self.stage = None
+
+    def setup(self):
+        self.stage = Stage(self, 1)
+        arcade.set_background_color(arcade.color.AZURE);
+        self.camera = arcade.Camera(SCREEN_WIDTH, SCREEN_HEIGHT)
+
+    def on_draw(self):
+        self.camera.use()
+        self.clear()
+        self.stage.draw()
+
+    def on_key_press(self, key, modifiers): self.keys.append(key)
+    def on_key_release(self, key, modifiers): self.keys.remove(key)
+    def on_update(self, delta_time):
+        self.stage.on_update(delta_time)
+
+def main():
+    Game().setup()
+    arcade.run()
+
+if __name__ == "__main__":
+    main()

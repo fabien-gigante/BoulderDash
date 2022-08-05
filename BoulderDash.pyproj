@@ -5,7 +5,7 @@
     <ProjectGuid>63c9184a-5974-4a96-8349-0ef05b17d283</ProjectGuid>
     <ProjectHome>
     </ProjectHome>
-    <StartupFile>BoulderDash.py</StartupFile>
+    <StartupFile>boulder_dash.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -22,10 +22,8 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="BoulderDash.py" />
-    <Compile Include="Element.py" />
-    <Compile Include="Miner.py" />
-    <Compile Include="Stage.py" />
+    <Compile Include="boulder_dash.py" />
+    <Compile Include="elements.py" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="README.md" />
