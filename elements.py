@@ -30,6 +30,9 @@ class Element(arcade.Sprite):
     def can_enter(self, entering):
         return False
 
+    def can_move(self, into):
+        return True
+
 class Soil(Element):
     def __init__(self, game, x, y):
         super().__init__(game, "Soil", x, y)

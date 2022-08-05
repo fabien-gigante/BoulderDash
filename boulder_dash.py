@@ -23,17 +23,19 @@ class Stage:
                 self.tiles[i].append(tile)
         self.tiles[5][5] = Miner(game, 5, 5)
 
+    def at(self, x, y) -> "Element":
+        if x < 0 or y < 0 or x >= STAGE_WIDTH or y >= STAGE_HEIGHT: return None
+        return self.tiles[y][x]
+
     def try_move(self, element, x, y):
-        if x < 0 or y < 0 or x >= STAGE_WIDTH or y >= STAGE_HEIGHT:
-            return False
-        tile = self.tiles[y][x]
-        if tile == None or tile.can_enter(element):
-            self.tiles[element.y][element.x] = None
-            self.tiles[y][x] = element
-            element.x = x ; element.y = y
-            return True
-        else:
-            return False
+        if x < 0 or y < 0 or x >= STAGE_WIDTH or y >= STAGE_HEIGHT: return False
+        tile = self.at(x,y)
+        if tile != None and not tile.can_enter(element): return False
+        if not element.can_move(tile): return False
+        self.tiles[element.y][element.x] = None
+        self.tiles[y][x] = element
+        element.x = x ; element.y = y
+        return True
 
     def draw(self):
         for row in self.tiles:
