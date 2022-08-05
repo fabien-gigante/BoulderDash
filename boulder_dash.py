@@ -1,5 +1,4 @@
 import arcade
-import random
 from typing import Optional
 from elements import *
 from caves import *
@@ -7,12 +6,28 @@ from caves import *
 CAVE_WIDTH = 40
 CAVE_HEIGHT = 22
 SCREEN_WIDTH = 32 * CAVE_WIDTH
-SCREEN_HEIGHT = 32 * CAVE_HEIGHT
+SCREEN_HEIGHT = 32 * (CAVE_HEIGHT + 1)
 SCREEN_TITLE = "Boulder Dash"
+
+class Player:
+    def __init__(self, game: "Game", id: int = 0) -> None:
+        self.game = game ; self.id = id
+        self.score = 0 ; self.life = 3
+        self.controls = \
+            (arcade.key.UP, arcade.key.LEFT, arcade.key.DOWN, arcade.key.RIGHT) if id == 0 else \
+            (arcade.key.Z, arcade.key.Q, arcade.key.S, arcade.key.D) if id == 1 else \
+            (arcade.key.I, arcade.key.J, arcade.key.K, arcade.key.L)
+
+    def kill(self) -> None:
+        self.life -= 1
+        if any(p.life > 0 for p in self.game.players): 
+            self.game.cave.wait_restart = 0.5 # seconds
+        else: self.game.over()
 
 class Cave:
     def __init__(self, game: "Game") -> None:
-        self.game = game ; 
+        self.game = game ; self.game.cave = self
+        self.wait_restart = 0
         self.next_level(1)
 
     def load(self) -> None:
@@ -25,20 +40,27 @@ class Cave:
                 elif c == 'W': tile = MetalWall(self.game, j, i)
                 elif c == '.': tile = Soil(self.game, j, i)
                 elif c == 'r': tile = Boulder(self.game, j, i)
-                elif c == 'd': tile = Diamond(self.game, j, i) ; self.nb_diamonds += 1
-                elif c == 'E': tile = Miner(self.game, j, i, self.nb_players); self.nb_players += 1
+                elif c == 'd': tile = Diamond(self.game, j, i)
+                elif c == 'E': 
+                    player = self.game.players[self.nb_players]; self.nb_players += 1
+                    if player.life > 0: tile = Miner(self.game, j, i, player); 
                 elif c == 'X': tile = Exit(self.game, j ,i)
                 elif c == 'f': tile = Enemy(self.game, j ,i)
-                elif c == 'b': tile = Butterfly(self.game, j ,i) ; self.nb_diamonds += 9
+                elif c == 'b': tile = Butterfly(self.game, j ,i)
                 elif c == '_': pass
                 else: tile = Unknown(self.game, j ,i) # TODO : 'a', 'b', 'm' ...
                 self.tiles[i].append(tile)
     
     def next_level(self, level : Optional[int] = None) -> None:
         self.level = min(CAVES.__len__(), max(1, self.level + 1 if level is None else level))
-        self.nb_players = 0 ; self.nb_diamonds = 0
+        self.nb_players = 0 ; self.to_collect = 0 ; self.to_kill = 0
         self.tiles = []
         self.load();
+
+    def restart_level(self) -> None: self.next_level(self.level)
+
+    def complete(self) -> bool: 
+        return self.to_collect == 0 and self.to_kill == 0
 
     def within_bounds(self, x: int ,y: int) -> bool:
         return x >= 0 and y >= 0 and x < CAVE_WIDTH and y < CAVE_HEIGHT
@@ -72,6 +94,9 @@ class Cave:
                 if not tile is None: tile.draw()
 
     def on_update(self, delta_time) -> None:
+        if self.wait_restart > 0:
+            self.wait_restart -= delta_time
+            if self.wait_restart <= 0: self.restart_level()
         for row in self.tiles:
             for tile in row:
                 if not tile is None: tile.on_update(delta_time)
@@ -88,12 +113,13 @@ class Cave:
 class Game(arcade.Window):
     def __init__(self):
         super().__init__(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_TITLE)
+        self.players = [ Player(self) ]
         self.keys = []
         self.camera = None
         self.Cave = None
 
     def setup(self) -> None:
-        self.cave = Cave(self)
+        Cave(self)
         arcade.set_background_color(arcade.color.BLACK);
         self.camera = arcade.Camera(SCREEN_WIDTH, SCREEN_HEIGHT)
 
@@ -106,11 +132,14 @@ class Game(arcade.Window):
         self.keys.append(key)
         if key == arcade.key.NUM_ADD : self.cave.next_level()
         elif key == arcade.key.NUM_SUBTRACT : self.cave.next_level(self.cave.level - 1)
-        elif key == arcade.key.NUM_MULTIPLY : self.cave.next_level(self.cave.level)
+        elif key == arcade.key.NUM_MULTIPLY : self.players = [ Player(self) ] ; self.cave.restart_level()
 
     def on_key_release(self, key, modifiers): self.keys.remove(key)
     def on_update(self, delta_time):
         self.cave.on_update(delta_time)
+
+    def over(self) -> None:
+        pass # TODO
 
 def main() -> None:
     Game().setup()
