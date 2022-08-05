@@ -77,7 +77,7 @@ class Ore(Element):
         return (isinstance(below, Ore) or isinstance(below, Wall)) and self.can_move(ix, -1) and self.try_move(ix, 0)
 
     def on_moved(self, into: Optional[Element]) -> None:
-        if isinstance(into, Miner):
+        if isinstance(into, Miner) or isinstance(into, Enemy):
             self.game.cave.explode(self.x, self.y)
 
 class Boulder(Ore):
@@ -104,7 +104,7 @@ class Miner(Element):
             else (arcade.key.UP, arcade.key.LEFT, arcade.key.DOWN, arcade.key.RIGHT)
 
     def can_be_penetrated(self, by: Element) -> bool:
-        return isinstance(by, Ore) and by.moving
+        return (isinstance(by, Ore) and by.moving) or isinstance(by, Enemy)
 
     def on_moved(self, into: Optional[Element]) -> None:
         if isinstance(into, Diamond): self.score += 1
@@ -152,3 +152,26 @@ class Exit(Element):
     
     def on_destroy(self) -> None: self.game.cave.next_level()
 
+class Enemy(Element):
+    def __init__(self, game: Game, x: int, y: int) -> None:
+        super().__init__(game, x, y)
+        self.d = [-1,0]
+
+    def can_be_penetrated(self, by: Element) -> bool:
+        return isinstance(by, Ore)
+
+    def on_moved(self, into: Optional[Element]) -> None:
+        if isinstance(into, Miner):
+            self.game.cave.explode(self.x, self.y)
+
+    def tick(self) -> None:
+        if self.try_move(self.d[1], -self.d[0]):
+            self.d = [self.d[1], -self.d[0]]
+        elif self.try_move(self.d[0], self.d[1]):
+            self.d = self.d
+        elif self.try_move(-self.d[1], self.d[0]):
+            self.d = [-self.d[1], self.d[0]]
+        elif self.try_move(-self.d[0], -self.d[1]):
+            self.d = [-self.d[0], -self.d[1]]
+
+    def on_destroy(self) -> None: self.game.cave.explode(self.x, self.y)

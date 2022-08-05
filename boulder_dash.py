@@ -28,6 +28,7 @@ class Cave:
                 elif c == 'd': tile = Diamond(self.game, j, i) ; self.nb_diamonds += 1
                 elif c == 'E': tile = Miner(self.game, j, i, self.nb_players); self.nb_players += 1
                 elif c == 'X': tile = Exit(self.game, j ,i)
+                elif c == 'f': tile = Enemy(self.game, j ,i)
                 elif c == '_': pass
                 else: tile = Unknown(self.game, j ,i) # TODO : 'f', 'a', 'b', 'm' ...
                 self.tiles[i].append(tile)
