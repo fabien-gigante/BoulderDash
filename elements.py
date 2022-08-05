@@ -5,7 +5,7 @@ from boulder_dash import Game
 
 TILE_SIZE = 64
 TILE_SCALE = 0.5
-DEFAULT_SPEED = 8 # squares per second
+DEFAULT_SPEED = 16 # squares per second
 KEY_UP = 0
 KEY_LEFT = 1
 KEY_DOWN = 2
@@ -98,7 +98,7 @@ class Diamond(Ore):
 class Miner(Element):
     def __init__(self, game: Game, x: int, y: int, id: int) -> None:
         super().__init__(game, x, y)
-        self.pushing = 0 ; self.score = 0;  self.speed *= 2
+        self.pushing = 0 ; self.score = 0
         self.controls = \
             (arcade.key.Z, arcade.key.Q,  arcade.key.S, arcade.key.D) if id == 1 \
             else (arcade.key.I, arcade.key.J,  arcade.key.K, arcade.key.L) if id == 2 \
@@ -160,6 +160,7 @@ class Exit(Element):
 class Enemy(Element):
     def __init__(self, game: Game, x: int, y: int) -> None:
         super().__init__(game, x, y)
+        self.speed /= 2
         self.dir = [-1,0]
 
     def can_be_penetrated(self, by: Element) -> bool:
@@ -181,26 +182,7 @@ class Enemy(Element):
 
     def on_destroy(self) -> None: self.game.cave.explode(self.x, self.y)
 
-class Butterfly(Element):
-    def __init__(self, game: Game, x: int, y: int) -> None:
-        super().__init__(game, x, y)
-        self.d = [-1,0]
+class Butterfly(Enemy):
+    def __init__(self, game: Game, x: int, y: int) -> None: super().__init__(game, x, y)
 
-    def can_be_penetrated(self, by: Element) -> bool:
-        return isinstance(by, Ore)
-
-    def on_moved(self, into: Optional[Element]) -> None:
-        if isinstance(into, Miner):
-            self.game.cave.explode(self.x, self.y)
-
-    def tick(self) -> None:
-        if self.try_move(self.d[1], -self.d[0]):
-            self.d = [self.d[1], -self.d[0]]
-        elif self.try_move(self.d[0], self.d[1]):
-            self.d = self.d
-        elif self.try_move(-self.d[1], self.d[0]):
-            self.d = [-self.d[1], self.d[0]]
-        elif self.try_move(-self.d[0], -self.d[1]):
-            self.d = [-self.d[0], -self.d[1]]
-
-    def on_destroy(self) -> None: self.game.cave.explodeDiamonds(self.x, self.y)
+    def on_destroy(self) -> None: self.game.cave.explode(self.x, self.y, Diamond)
