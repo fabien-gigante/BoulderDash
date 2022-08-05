@@ -52,7 +52,7 @@ class Wall(Element):
     def __init__(self, game: "Game", x: int, y: int) -> None:
         super().__init__(game, x, y)
 
-class Rolling(Element):
+class Ore(Element):
     def __init__(self, game: "Game", x: int, y: int) -> None:
         super().__init__(game, x, y)
 
@@ -63,11 +63,11 @@ class Rolling(Element):
 
     def try_roll(self, ix: int) -> bool:
         below = self.game.stage.at(self.x, self.y -1)
-        if not isinstance(below, Rolling): return False
+        if not isinstance(below, Ore): return False
         if not self.game.stage.at(self.x + ix, self.y) is None : return False
         return self.try_move(ix, -1);
 
-class Boulder(Rolling):
+class Boulder(Ore):
     def __init__(self, game: "Game", x: int, y: int) -> None:
         super().__init__(game, x, y)
         
@@ -75,7 +75,7 @@ class Boulder(Rolling):
         if isinstance(into, Miner):
             pass # TODO : explode, game over
 
-class Diamond(Rolling):
+class Diamond(Ore):
     def __init__(self, game: "Game", x: int, y: int) -> None:
         super().__init__(game, x, y)
 
@@ -85,7 +85,7 @@ class Diamond(Rolling):
     def on_moved(self, into: Optional["Element"]) -> None:
         if isinstance(into, Miner): 
             self.game.stage.replace(self, into)
-            into.score += 1
+            into.on_moved(self)
 
 class Miner(Element):
     def __init__(self, game: "Game", x: int, y: int) -> None:
@@ -93,7 +93,7 @@ class Miner(Element):
         self.score = 0
 
     def can_be_penetrated(self, by: "Element") -> bool:
-        return isinstance(by, Rolling) and by.moving
+        return isinstance(by, Ore) and by.moving
 
     def on_moved(self, into: Optional["Element"]) -> None:
         if isinstance(into, Diamond): self.score += 1
@@ -109,4 +109,7 @@ class Miner(Element):
             self.try_move(0, -1)
     
     def try_push(self, ix: int) -> bool:
-        return False # TODO
+        pushed = self.game.stage.at(self.x + ix, self.y)
+        if not isinstance(pushed, Boulder): return False
+        if pushed.try_move(ix, 0): return self.try_move(ix, 0)
+        return False
