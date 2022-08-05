@@ -2,30 +2,27 @@ import arcade
 from boulder_dash import *
 
 TILE_SIZE = 64
-HEART_BEAT = 0.2
 TILE_SCALE = 0.5
+MAX_SPEED = 5 # squares per second
 
 class Element(arcade.Sprite):
-    def __init__(self, game, type, x, y, heartbeat = HEART_BEAT):
+    def __init__(self, game, type, x, y):
         super().__init__("Tiles/" + type + str(TILE_SIZE) + "-0.png", TILE_SCALE)
-        self.game = game
-        self.type = type
+        self.game = game ; self.type = type
         self.x = x ; self.y = y;
-        self.center_x = TILE_SIZE * TILE_SCALE * (x + 0.5)  ; self.center_y = TILE_SIZE * TILE_SCALE * (y + 0.5)
-        self.heartbeat = heartbeat
-        self.clock = 0
+        self.center_x = TILE_SIZE * TILE_SCALE * (x + 0.5)
+        self.center_y = TILE_SIZE * TILE_SCALE * (y + 0.5)
+        self.wait = 0
 
     def move(self, ix, iy):
       if self.game.stage.move(self, self.x + ix, self.y + iy):
           self.center_x += TILE_SIZE * TILE_SCALE * ix
           self.center_y += TILE_SIZE * TILE_SCALE * iy
+          self.wait = 1/MAX_SPEED
 
     def on_update(self, delta_time):
-        if self.heartbeat > 0 :
-            self.clock += delta_time
-            if self.clock >= self.heartbeat:
-                self.clock -= self.heartbeat
-                self.tick()
+        if self.clock > 0: self.wait -= delta_time
+        else: self.tick()
 
     def tick(self):
         pass
@@ -44,6 +41,16 @@ class Wall(Element):
     def __init__(self, game, x, y):
         super().__init__(game, "Wall", x, y)
 
+class Boulder(Element):
+    def __init__(self, game, x, y):
+        super().__init__(game, "Boulder", x, y)
+
+    def tick(self):
+        self.move(0, 0)
+
+class Diamond(Element):
+    def __init__(self, game, x, y):
+        super().__init__(game, "Diamond", x, y)
 
 class Miner(Element):
     def __init__(self, game, x, y):

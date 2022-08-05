@@ -23,16 +23,26 @@ class Stage:
         self.tiles[5][5] = Miner(game, 5, 5)
 
     def move(self, element, x, y):
-        if x < 0 or y < 0 or x >= STAGE_WIDTH or y >= STAGE_HEIGHT:
-            return False
-        tile = self.tiles[y][x]
-        if tile == None or tile.can_enter(element):
-            self.tiles[element.y][element.x] = None
-            self.tiles[y][x] = element
-            element.x = x ; element.y = y
-            return True
-        else:
-            return False
+        if element.type == "Miner":
+            if x < 0 or y < 0 or x >= STAGE_WIDTH or y >= STAGE_HEIGHT:
+                return False
+            tile = self.tiles[y][x]
+            if tile == None or tile.can_enter(element):
+                self.tiles[element.y][element.x] = None
+                self.tiles[y][x] = element
+                element.x = x ; element.y = y
+                return True
+            else:
+                return False
+        elif element.type == "Boulder":
+            if 0 > y - 1:
+                return False
+            tile = self.tiles[y-1][x]
+            if tile == None or tile.can_enter(element):
+                self.tiles[y][x] = None
+                self.tiles[y-1][x] = element
+                element.y = y-1
+                return True
 
     def draw(self):
         for row in self.tiles:
