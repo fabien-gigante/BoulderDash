@@ -179,3 +179,27 @@ class Enemy(Element):
             self.d = [-self.d[0], -self.d[1]]
 
     def on_destroy(self) -> None: self.game.cave.explode(self.x, self.y)
+
+class Butterfly(Element):
+    def __init__(self, game: Game, x: int, y: int) -> None:
+        super().__init__(game, x, y)
+        self.d = [-1,0]
+
+    def can_be_penetrated(self, by: Element) -> bool:
+        return isinstance(by, Ore)
+
+    def on_moved(self, into: Optional[Element]) -> None:
+        if isinstance(into, Miner):
+            self.game.cave.explode(self.x, self.y)
+
+    def tick(self) -> None:
+        if self.try_move(self.d[1], -self.d[0]):
+            self.d = [self.d[1], -self.d[0]]
+        elif self.try_move(self.d[0], self.d[1]):
+            self.d = self.d
+        elif self.try_move(-self.d[1], self.d[0]):
+            self.d = [-self.d[1], self.d[0]]
+        elif self.try_move(-self.d[0], -self.d[1]):
+            self.d = [-self.d[0], -self.d[1]]
+
+    def on_destroy(self) -> None: self.game.cave.explodeDiamonds(self.x, self.y)

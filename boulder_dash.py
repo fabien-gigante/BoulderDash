@@ -29,6 +29,7 @@ class Cave:
                 elif c == 'E': tile = Miner(self.game, j, i, self.nb_players); self.nb_players += 1
                 elif c == 'X': tile = Exit(self.game, j ,i)
                 elif c == 'f': tile = Enemy(self.game, j ,i)
+                elif c == 'b': tile = Butterfly(self.game, j ,i) ; self.nb_diamonds += 9
                 elif c == '_': pass
                 else: tile = Unknown(self.game, j ,i) # TODO : 'f', 'a', 'b', 'm' ...
                 self.tiles[i].append(tile)
@@ -82,6 +83,14 @@ class Cave:
                     tile = self.tiles[j][i]
                     if tile is None or tile.can_break():
                         self.tiles[j][i] = Explosion(self.game, i, j);
+
+    def explodeDiamonds(self, x: int, y: int) -> None:
+        for i in range(x-1,x+2):
+            for j in range(y-1,y+2):
+                if self.within_bounds(i, j):
+                    tile = self.tiles[j][i]
+                    if tile is None or tile.can_break():
+                        self.tiles[j][i] = Diamond(self.game, i, j);
 
 class Game(arcade.Window):
     def __init__(self):
