@@ -63,7 +63,7 @@ class Game(arcade.Window):
 
     def setup(self):
         self.stage = Stage(self, 1)
-        arcade.set_background_color(arcade.color.AZURE);
+        arcade.set_background_color(arcade.color.BLACK);
         self.camera = arcade.Camera(SCREEN_WIDTH, SCREEN_HEIGHT)
 
     def on_draw(self):
