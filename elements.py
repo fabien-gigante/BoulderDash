@@ -42,36 +42,28 @@ class Element(arcade.Sprite):
             self.tick() 
             self.moving = self.moved
 
-    def tick(self):
-        pass
-
-    def can_be_penetrated(self, by: "Element") -> bool:
-        return False
-
-    def on_moved(self, into: Optional["Element"]) -> None:
-        pass
-
-    def can_break(self) -> bool:
-        return True
+    def tick(self): pass
+    def can_be_penetrated(self, by: "Element") -> bool: return False
+    def on_moved(self, into: Optional["Element"]) -> None: pass
+    def can_break(self) -> bool:  return True
+    def on_destroy(self) -> None: pass
 
 class Unknown(Element):
-    def __init__(self, game: Game, x: int, y: int) -> None:
-        super().__init__(game, x, y)
+    def __init__(self, game: Game, x: int, y: int) -> None: super().__init__(game, x, y)
 
 class Soil(Element):
-    def __init__(self, game: Game, x: int, y: int) -> None:
-        super().__init__(game, x, y)
-
-    def can_be_penetrated(self, by: "Element") -> bool:
-        return isinstance(by, Miner)
+    def __init__(self, game: Game, x: int, y: int) -> None: super().__init__(game, x, y)
+    def can_be_penetrated(self, by: "Element") -> bool: return isinstance(by, Miner)
 
 class Wall(Element):
-    def __init__(self, game: Game, x: int, y: int) -> None:
-        super().__init__(game, x, y)
+    def __init__(self, game: Game, x: int, y: int) -> None: super().__init__(game, x, y)
+
+class MetalWall(Wall):
+    def __init__(self, game: Game, x: int, y: int) -> None: super().__init__(game, x, y)
+    def can_break(self) -> bool:  return False
 
 class Ore(Element):
-    def __init__(self, game: Game, x: int, y: int) -> None:
-        super().__init__(game, x, y)
+    def __init__(self, game: Game, x: int, y: int) -> None: super().__init__(game, x, y)
 
     def tick(self) -> None:
         if self.try_move(0, -1): return
@@ -83,25 +75,24 @@ class Ore(Element):
         return isinstance(below, Ore) and self.can_move(ix, -1) and self.try_move(ix, 0)
 
 class Boulder(Ore):
-    def __init__(self, game: Game, x: int, y: int) -> None:
-        super().__init__(game, x, y)
+    def __init__(self, game: Game, x: int, y: int) -> None: super().__init__(game, x, y)
         
     def on_moved(self, into: Optional[Element]) -> None:
         if isinstance(into, Miner):
             self.game.cave.explode(self.x, self.y)
-            pass # TODO : game over
 
 class Diamond(Ore):
-    def __init__(self, game: Game, x: int, y: int) -> None:
-        super().__init__(game, x, y)
+    def __init__(self, game: Game, x: int, y: int) -> None: super().__init__(game, x, y)
 
-    def can_be_penetrated(self, by: Element) -> bool:
-        return isinstance(by, Miner)
+    def can_be_penetrated(self, by: Element) -> bool: return isinstance(by, Miner)
 
     def on_moved(self, into: Optional[Element]) -> None:
         if isinstance(into, Miner): 
             self.game.cave.replace(self, into)
             into.on_moved(self)
+
+    def on_destroy(self) -> None:
+        self.game.cave.nb_diamonds -= 1
 
 class Miner(Element):
     def __init__(self, game: Game, x: int, y: int, id: int) -> None:
@@ -109,6 +100,7 @@ class Miner(Element):
         self.score = 0
         self.controls = \
             (arcade.key.Z, arcade.key.Q,  arcade.key.S, arcade.key.D) if id == 1 \
+            else (arcade.key.I, arcade.key.J,  arcade.key.K, arcade.key.L) if id == 2 \
             else (arcade.key.UP, arcade.key.LEFT, arcade.key.DOWN, arcade.key.RIGHT)
 
     def can_be_penetrated(self, by: Element) -> bool:
@@ -136,13 +128,12 @@ class Miner(Element):
         if pushed.try_move(ix, 0): return self.try_move(ix, 0)
         return False
 
+    def on_destroy(self) -> None: pass # TODO : game over
+
 class Explosion(Element):
     def __init__(self, game: Game, x: int, y: int) -> None:
         super().__init__(game, x, y)
         self.wait = 1/8
 
-    def can_be_penetrated(self, by: "Element") -> bool:
-        return True
-
-    def tick(self) -> None:
-        self.game.cave.replace(self, None)
+    def can_be_penetrated(self, by: "Element") -> bool: return True
+    def tick(self) -> None: self.game.cave.replace(self, None)
