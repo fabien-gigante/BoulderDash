@@ -23,7 +23,8 @@ class Stage:
                 elif dice == 3: tile = Boulder(game, j, i)
                 elif dice == 4: tile = Diamond(game, j, i)
                 self.tiles[i].append(tile)
-        self.tiles[5][5] = Miner(game, 5, 5)
+        self.tiles[5][5] = Miner(game, 5, 5, 0)
+        self.tiles[15][10] = Miner(game, 15, 10, 1)
     
     def within_bounds(self, x: int ,y: int ) -> bool:
         return x >= 0 and y >= 0 and x < STAGE_WIDTH and y < STAGE_HEIGHT

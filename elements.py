@@ -6,6 +6,10 @@ from boulder_dash import *
 TILE_SIZE = 64
 TILE_SCALE = 0.75
 MAX_SPEED = 8 # squares per second
+KEY_UP = 0
+KEY_LEFT = 1
+KEY_DOWN = 2
+KEY_RIGHT = 3
 
 class Element(arcade.Sprite):
     def __init__(self, game: "Game", x: int, y: int) -> None:
@@ -18,6 +22,9 @@ class Element(arcade.Sprite):
     def compute_pos(self) -> None:
         self.center_x = TILE_SIZE * TILE_SCALE * (self.x + 0.5)
         self.center_y = TILE_SIZE * TILE_SCALE * (self.y + 0.5)
+
+    def can_move(self, ix: int, iy: int)  -> bool:
+        return self.game.stage.can_move(self, self.x + ix, self.y + iy)
 
     def try_move(self, ix: int, iy: int)  -> bool:
         if self.game.stage.try_move(self, self.x + ix, self.y + iy):
@@ -66,9 +73,7 @@ class Ore(Element):
 
     def try_roll(self, ix: int) -> bool:
         below = self.game.stage.at(self.x, self.y -1)
-        if not isinstance(below, Ore): return False
-        if not self.game.stage.at(self.x + ix, self.y) is None : return False
-        return self.try_move(ix, -1);
+        return isinstance(below, Ore) and self.can_move(ix, -1) and self.try_move(ix, 0)
 
 class Boulder(Ore):
     def __init__(self, game: "Game", x: int, y: int) -> None:
@@ -91,9 +96,12 @@ class Diamond(Ore):
             into.on_moved(self)
 
 class Miner(Element):
-    def __init__(self, game: "Game", x: int, y: int) -> None:
+    def __init__(self, game: "Game", x: int, y: int, id: int) -> None:
         super().__init__(game, x, y)
         self.score = 0
+        self.controls = \
+            (arcade.key.Z, arcade.key.Q,  arcade.key.S, arcade.key.D) if id == 1 \
+            else (arcade.key.UP, arcade.key.LEFT, arcade.key.DOWN, arcade.key.RIGHT)
 
     def can_be_penetrated(self, by: "Element") -> bool:
         return isinstance(by, Ore) and by.moving
@@ -101,14 +109,17 @@ class Miner(Element):
     def on_moved(self, into: Optional["Element"]) -> None:
         if isinstance(into, Diamond): self.score += 1
 
+    def pressed(self, key: int) -> bool:
+        return self.controls[key] in self.game.keys
+
     def tick(self) -> None:
-        if   arcade.key.LEFT  in self.game.keys:  
+        if   self.pressed(KEY_LEFT):  
             if not self.try_move(-1, 0): self.try_push(-1)
-        elif arcade.key.RIGHT in self.game.keys:  
+        elif self.pressed(KEY_RIGHT):
             if not self.try_move(+1, 0): self.try_push(+1)
-        elif arcade.key.UP    in self.game.keys:
+        elif self.pressed(KEY_UP):
             self.try_move(0, +1)
-        elif arcade.key.DOWN  in self.game.keys:
+        elif self.pressed(KEY_DOWN):
             self.try_move(0, -1)
     
     def try_push(self, ix: int) -> bool:
