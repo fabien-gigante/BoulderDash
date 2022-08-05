@@ -30,14 +30,15 @@ class Cave:
                 else: tile = Unknown(game, j ,i) # TODO : 'f', 'a', 'b', 'm' ...
                 self.tiles[i].append(tile)
     
-    def within_bounds(self, x: int ,y: int ) -> bool:
+    def within_bounds(self, x: int ,y: int) -> bool:
         return x >= 0 and y >= 0 and x < CAVE_WIDTH and y < CAVE_HEIGHT
 
     def at(self, x: int , y: int ) -> Optional["Element"]:
         return self.tiles[y][x] if self.within_bounds(x,y) else None
 
-    def replace(self, e1 : "Element", e2 : "Element") -> None:
-        self.tiles[e1.y][e1.x] = e2
+    def replace(self, e1 : "Element", e2 : Optional["Element"]) -> None:
+        if self.at(e1.x, e1.y) == e1: # still there ?
+          self.tiles[e1.y][e1.x] = e2
 
     def can_move(self, element: "Element", x: int , y: int ) -> bool:
         if not self.within_bounds(x,y): return False
@@ -63,6 +64,14 @@ class Cave:
             for tile in row:
                 if not tile is None: tile.on_update(delta_time)
 
+    def explode(self, x: int, y: int) -> None:
+        for i in range(x-1,x+2):
+            for j in range(y-1,y+2):
+                if self.within_bounds(i, j):
+                    tile = self.tiles[j][i]
+                    if tile is None or tile.can_break():
+                        self.tiles[j][i] = Explosion(self.game, i, j);
+
 class Game(arcade.Window):
     def __init__(self):
         super().__init__(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_TITLE)
@@ -71,19 +80,19 @@ class Game(arcade.Window):
         self.Cave = None
 
     def setup(self) -> None:
-        self.Cave = Cave(self, 1)
+        self.cave = Cave(self, 1)
         arcade.set_background_color(arcade.color.BLACK);
         self.camera = arcade.Camera(SCREEN_WIDTH, SCREEN_HEIGHT)
 
     def on_draw(self) -> None:
         self.camera.use()
         self.clear()
-        self.Cave.draw()
+        self.cave.draw()
 
     def on_key_press(self, key, modifiers): self.keys.append(key)
     def on_key_release(self, key, modifiers): self.keys.remove(key)
     def on_update(self, delta_time):
-        self.Cave.on_update(delta_time)
+        self.cave.on_update(delta_time)
 
 def main() -> None:
     Game().setup()

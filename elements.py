@@ -24,10 +24,10 @@ class Element(arcade.Sprite):
         self.center_y = TILE_SIZE * TILE_SCALE * (self.y + 0.5)
 
     def can_move(self, ix: int, iy: int)  -> bool:
-        return self.game.Cave.can_move(self, self.x + ix, self.y + iy)
+        return self.game.cave.can_move(self, self.x + ix, self.y + iy)
 
     def try_move(self, ix: int, iy: int)  -> bool:
-        if self.game.Cave.try_move(self, self.x + ix, self.y + iy):
+        if self.game.cave.try_move(self, self.x + ix, self.y + iy):
             self.compute_pos()
             self.wait = 1 / MAX_SPEED
             self.moved = True
@@ -50,6 +50,9 @@ class Element(arcade.Sprite):
 
     def on_moved(self, into: Optional["Element"]) -> None:
         pass
+
+    def can_break(self) -> bool:
+        return True
 
 class Unknown(Element):
     def __init__(self, game: Game, x: int, y: int) -> None:
@@ -76,7 +79,7 @@ class Ore(Element):
         self.try_roll(ix) or self.try_roll(-ix)
 
     def try_roll(self, ix: int) -> bool:
-        below = self.game.Cave.at(self.x, self.y -1)
+        below = self.game.cave.at(self.x, self.y -1)
         return isinstance(below, Ore) and self.can_move(ix, -1) and self.try_move(ix, 0)
 
 class Boulder(Ore):
@@ -85,7 +88,8 @@ class Boulder(Ore):
         
     def on_moved(self, into: Optional[Element]) -> None:
         if isinstance(into, Miner):
-            pass # TODO : explode, game over
+            self.game.cave.explode(self.x, self.y)
+            pass # TODO : game over
 
 class Diamond(Ore):
     def __init__(self, game: Game, x: int, y: int) -> None:
@@ -96,7 +100,7 @@ class Diamond(Ore):
 
     def on_moved(self, into: Optional[Element]) -> None:
         if isinstance(into, Miner): 
-            self.game.Cave.replace(self, into)
+            self.game.cave.replace(self, into)
             into.on_moved(self)
 
 class Miner(Element):
@@ -127,7 +131,18 @@ class Miner(Element):
             self.try_move(0, -1)
     
     def try_push(self, ix: int) -> bool:
-        pushed = self.game.Cave.at(self.x + ix, self.y)
+        pushed = self.game.cave.at(self.x + ix, self.y)
         if not isinstance(pushed, Boulder): return False
         if pushed.try_move(ix, 0): return self.try_move(ix, 0)
         return False
+
+class Explosion(Element):
+    def __init__(self, game: Game, x: int, y: int) -> None:
+        super().__init__(game, x, y)
+        self.wait = 1/8
+
+    def can_be_penetrated(self, by: "Element") -> bool:
+        return True
+
+    def tick(self) -> None:
+        self.game.cave.replace(self, None)
