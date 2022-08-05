@@ -97,7 +97,7 @@ class Diamond(Ore):
 class Miner(Element):
     def __init__(self, game: Game, x: int, y: int, id: int) -> None:
         super().__init__(game, x, y)
-        self.score = 0
+        self.pushing = 0 ; self.score = 0
         self.controls = \
             (arcade.key.Z, arcade.key.Q,  arcade.key.S, arcade.key.D) if id == 1 \
             else (arcade.key.I, arcade.key.J,  arcade.key.K, arcade.key.L) if id == 2 \
@@ -108,6 +108,7 @@ class Miner(Element):
 
     def on_moved(self, into: Optional[Element]) -> None:
         if isinstance(into, Diamond): self.score += 1
+        self.pushing = 0
 
     def pressed(self, key: int) -> bool:
         return self.controls[key] in self.game.keys
@@ -125,6 +126,9 @@ class Miner(Element):
     def try_push(self, ix: int) -> bool:
         pushed = self.game.cave.at(self.x + ix, self.y)
         if not isinstance(pushed, Boulder): return False
+        if self.pushing != ix: 
+           self.pushing = ix; self.wait = 1 / MAX_SPEED
+           return False
         if pushed.try_move(ix, 0): return self.try_move(ix, 0)
         return False
 
