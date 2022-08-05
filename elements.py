@@ -12,21 +12,24 @@ class Element(arcade.Sprite):
         super().__init__("Tiles/" + type(self).__name__ + str(TILE_SIZE) + "-0.png", TILE_SCALE)
         self.game = game ;
         self.x = x ; self.y = y;
-        self.center_x = TILE_SIZE * TILE_SCALE * (x + 0.5)
-        self.center_y = TILE_SIZE * TILE_SCALE * (y + 0.5)
         self.wait = 0 ; self.moved = self.moving = False
+        self.compute_pos()
+    
+    def compute_pos(self) -> None:
+        self.center_x = TILE_SIZE * TILE_SCALE * (self.x + 0.5)
+        self.center_y = TILE_SIZE * TILE_SCALE * (self.y + 0.5)
 
     def try_move(self, ix: int, iy: int)  -> bool:
-      if self.game.stage.try_move(self, self.x + ix, self.y + iy):
-          self.center_x += TILE_SIZE * TILE_SCALE * ix
-          self.center_y += TILE_SIZE * TILE_SCALE * iy
-          self.wait = 1 / MAX_SPEED
-          self.moved = True
-          return True
-      return False
+        if self.game.stage.try_move(self, self.x + ix, self.y + iy):
+            self.compute_pos()
+            self.wait = 1 / MAX_SPEED
+            self.moved = True
+            return True
+        return False
 
     def on_update(self, delta_time) -> None:
-        if self.wait > 0: self.wait -= delta_time
+        if self.wait > 0: 
+            self.wait -= delta_time
         else: 
             self.moved = False
             self.tick() 
