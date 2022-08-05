@@ -47,8 +47,10 @@ class Cave:
                 elif c == 'X': tile = Exit(self.game, j ,i)
                 elif c == 'f': tile = Enemy(self.game, j ,i)
                 elif c == 'b': tile = Butterfly(self.game, j ,i)
+                elif c == 'm': tile = Unknown(self.game, j ,i) # TODO : magic wall
+                elif c == 'a': tile = Unknown(self.game, j ,i) # TODO : amoeba
                 elif c == '_': pass
-                else: tile = Unknown(self.game, j ,i) # TODO : 'a', 'b', 'm' ...
+                else: tile = Unknown(self.game, j ,i)
                 self.tiles[i].append(tile)
     
     def next_level(self, level : Optional[int] = None) -> None:
