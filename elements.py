@@ -14,11 +14,11 @@ class Element(arcade.Sprite):
         self.center_y = TILE_SIZE * TILE_SCALE * (y + 0.5)
         self.wait = 0
 
-    def move(self, ix, iy):
-      if self.game.stage.move(self, self.x + ix, self.y + iy):
+    def try_move(self, ix, iy):
+      if self.game.stage.try_move(self, self.x + ix, self.y + iy):
           self.center_x += TILE_SIZE * TILE_SCALE * ix
           self.center_y += TILE_SIZE * TILE_SCALE * iy
-          self.wait = 1/MAX_SPEED
+          self.wait = 1 / MAX_SPEED
 
     def on_update(self, delta_time):
         if self.wait > 0: self.wait -= delta_time
@@ -27,15 +27,15 @@ class Element(arcade.Sprite):
     def tick(self):
         pass
 
-    def can_enter(self, element):
+    def can_enter(self, entering):
         return False
 
 class Soil(Element):
     def __init__(self, game, x, y):
         super().__init__(game, "Soil", x, y)
 
-    def can_enter(self, element):
-        return element.type == "Miner"
+    def can_enter(self, entering):
+        return entering.type == "Miner"
 
 class Wall(Element):
     def __init__(self, game, x, y):
@@ -46,7 +46,7 @@ class Boulder(Element):
         super().__init__(game, "Boulder", x, y)
 
     def tick(self):
-        self.move(0, 0)
+        self.try_move(0, -1)
 
 class Diamond(Element):
     def __init__(self, game, x, y):
@@ -57,7 +57,7 @@ class Miner(Element):
         super().__init__(game, "Miner", x, y)
 
     def tick(self):
-        if   arcade.key.LEFT  in self.game.keys:  self.move(-1, 0)
-        elif arcade.key.RIGHT in self.game.keys:  self.move(+1, 0)
-        elif arcade.key.UP    in self.game.keys:  self.move(0, +1)
-        elif arcade.key.DOWN  in self.game.keys:  self.move(0, -1)
+        if   arcade.key.LEFT  in self.game.keys:  self.try_move(-1, 0)
+        elif arcade.key.RIGHT in self.game.keys:  self.try_move(+1, 0)
+        elif arcade.key.UP    in self.game.keys:  self.try_move(0, +1)
+        elif arcade.key.DOWN  in self.game.keys:  self.try_move(0, -1)

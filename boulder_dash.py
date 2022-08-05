@@ -16,33 +16,24 @@ class Stage:
             self.tiles.append([])
             for j in range(0,STAGE_WIDTH):
                 tile = None
-                dice = random.randint(0,3) 
+                dice = random.randint(0, 4) 
                 if dice == 1: tile = Soil(game, j, i)
                 elif dice == 2: tile = Wall(game, j, i)
+                elif dice == 3: tile = Boulder(game, j, i)
                 self.tiles[i].append(tile)
         self.tiles[5][5] = Miner(game, 5, 5)
 
-    def move(self, element, x, y):
-        if element.type == "Miner":
-            if x < 0 or y < 0 or x >= STAGE_WIDTH or y >= STAGE_HEIGHT:
-                return False
-            tile = self.tiles[y][x]
-            if tile == None or tile.can_enter(element):
-                self.tiles[element.y][element.x] = None
-                self.tiles[y][x] = element
-                element.x = x ; element.y = y
-                return True
-            else:
-                return False
-        elif element.type == "Boulder":
-            if 0 > y - 1:
-                return False
-            tile = self.tiles[y-1][x]
-            if tile == None or tile.can_enter(element):
-                self.tiles[y][x] = None
-                self.tiles[y-1][x] = element
-                element.y = y-1
-                return True
+    def try_move(self, element, x, y):
+        if x < 0 or y < 0 or x >= STAGE_WIDTH or y >= STAGE_HEIGHT:
+            return False
+        tile = self.tiles[y][x]
+        if tile == None or tile.can_enter(element):
+            self.tiles[element.y][element.x] = None
+            self.tiles[y][x] = element
+            element.x = x ; element.y = y
+            return True
+        else:
+            return False
 
     def draw(self):
         for row in self.tiles:
