@@ -3,7 +3,7 @@ from boulder_dash import *
 
 TILE_SIZE = 64
 TILE_SCALE = 0.5
-MAX_SPEED = 5 # squares per second
+MAX_SPEED = 8 # squares per second
 
 class Element(arcade.Sprite):
     def __init__(self, game, type, x, y):
@@ -21,7 +21,7 @@ class Element(arcade.Sprite):
           self.wait = 1/MAX_SPEED
 
     def on_update(self, delta_time):
-        if self.clock > 0: self.wait -= delta_time
+        if self.wait > 0: self.wait -= delta_time
         else: self.tick()
 
     def tick(self):
