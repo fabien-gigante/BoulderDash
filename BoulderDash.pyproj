@@ -31,7 +31,11 @@
     <Content Include="Tiles\Boulder64-0.png" />
     <Content Include="Tiles\Boulder8-0.png" />
     <Content Include="Tiles\Diamond64-0.png" />
+    <Content Include="Tiles\Diamond64-1.png" />
+    <Content Include="Tiles\Diamond64-2.png" />
+    <Content Include="Tiles\Diamond64-3.png" />
     <Content Include="Tiles\Diamond8-0.png" />
+    <Content Include="Tiles\Exit64-0.png" />
     <Content Include="Tiles\Explosion64-0.png" />
     <Content Include="Tiles\MetalWall64-0.png" />
     <Content Include="Tiles\Miner64-0.png" />

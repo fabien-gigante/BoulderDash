@@ -12,8 +12,10 @@ KEY_DOWN = 2
 KEY_RIGHT = 3
 
 class Element(arcade.Sprite):
-    def __init__(self, game: Game, x: int, y: int) -> None:
+    def __init__(self, game: Game, x: int, y: int, n: int = 0) -> None:
         super().__init__("Tiles/" + type(self).__name__ + str(TILE_SIZE) + "-0.png", TILE_SCALE)
+        for i in range(1,n+1): 
+            self.append_texture(arcade.load_texture("Tiles/" + type(self).__name__ + str(TILE_SIZE) + "-" + str(i) + ".png"))
         self.game = game ;
         self.x = x ; self.y = y;
         self.wait = 0 ; self.moved = self.moving = False
@@ -63,7 +65,7 @@ class MetalWall(Wall):
     def can_break(self) -> bool:  return False
 
 class Ore(Element):
-    def __init__(self, game: Game, x: int, y: int) -> None: super().__init__(game, x, y)
+    def __init__(self, game: Game, x: int, y: int, n:int = 0) -> None: super().__init__(game, x, y, n)
 
     def tick(self) -> None:
         if self.try_move(0, -1): return
@@ -74,25 +76,23 @@ class Ore(Element):
         below = self.game.cave.at(self.x, self.y -1)
         return isinstance(below, Ore) and self.can_move(ix, -1) and self.try_move(ix, 0)
 
-class Boulder(Ore):
-    def __init__(self, game: Game, x: int, y: int) -> None: super().__init__(game, x, y)
-        
     def on_moved(self, into: Optional[Element]) -> None:
         if isinstance(into, Miner):
             self.game.cave.explode(self.x, self.y)
 
-class Diamond(Ore):
+class Boulder(Ore):
     def __init__(self, game: Game, x: int, y: int) -> None: super().__init__(game, x, y)
 
+class Diamond(Ore):
+    def __init__(self, game: Game, x: int, y: int) -> None: super().__init__(game, x, y, 3)
     def can_be_penetrated(self, by: Element) -> bool: return isinstance(by, Miner)
-
-    def on_moved(self, into: Optional[Element]) -> None:
-        if isinstance(into, Miner): 
-            self.game.cave.replace(self, into)
-            into.on_moved(self)
-
-    def on_destroy(self) -> None:
-        self.game.cave.nb_diamonds -= 1
+    def can_break(self) -> bool:  return False
+    def on_destroy(self) -> None: self.game.cave.nb_diamonds -= 1
+    def tick(self) -> None:
+        shine = random.randint(1, 40)
+        if shine > 3: shine = 0
+        self.set_texture(shine)
+        super().tick()
 
 class Miner(Element):
     def __init__(self, game: Game, x: int, y: int, id: int) -> None:
@@ -134,6 +134,21 @@ class Explosion(Element):
     def __init__(self, game: Game, x: int, y: int) -> None:
         super().__init__(game, x, y)
         self.wait = 1/8
-
     def can_be_penetrated(self, by: "Element") -> bool: return True
     def tick(self) -> None: self.game.cave.replace(self, None)
+
+class Exit(Element):
+    def __init__(self, game: Game, x: int, y: int) -> None:
+        super().__init__(game, x, y)
+        self.append_texture(arcade.load_texture("Tiles/" + MetalWall.__name__ + str(TILE_SIZE) + "-0.png"))
+        self.opened = False ; self.set_texture(1)
+
+    def tick(self) -> None:
+        if self.game.cave.nb_diamonds == 0:
+            self.opened = True ; self.set_texture(0)
+
+    def can_be_penetrated(self, by: "Element") -> bool: 
+        return isinstance(by, Miner) and self.opened
+    
+    def on_destroy(self) -> None: self.cave.next_level()
+
