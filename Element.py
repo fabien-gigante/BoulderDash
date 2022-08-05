@@ -42,3 +42,14 @@ class Soil(Element):
 class Wall(Element):
     def __init__(self, game, x, y):
         super().__init__(game, "Wall", x, y)
+
+class Boulder(Element):
+    def __init__(self, game, x, y):
+        super().__init__(game, "Boulder", x, y)
+
+    def tick(self):
+        self.move(0, 0)
+
+class Diamond(Element):
+    def __init__(self, game, x, y):
+        super().__init__(game, "Diamond", x, y)

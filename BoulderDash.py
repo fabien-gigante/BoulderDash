@@ -19,7 +19,7 @@ class Game(arcade.Window):
         self.sprites = arcade.SpriteList()
         self.sprites.append( Miner(self, self.stage.start_x, self.stage.start_y) )
 
-        arcade.set_background_color(arcade.color.AZURE);
+        arcade.set_background_color(arcade.color.BLACK);
         self.camera = arcade.Camera(SCREEN_WIDTH, SCREEN_HEIGHT)
 
     def on_draw(self):
