@@ -74,7 +74,7 @@ class Ore(Element):
 
     def try_roll(self, ix: int) -> bool:
         below = self.game.cave.at(self.x, self.y -1)
-        return isinstance(below, Ore) and self.can_move(ix, -1) and self.try_move(ix, 0)
+        return (isinstance(below, Ore) or isinstance(below, Wall)) and self.can_move(ix, -1) and self.try_move(ix, 0)
 
     def on_moved(self, into: Optional[Element]) -> None:
         if isinstance(into, Miner):
@@ -150,5 +150,5 @@ class Exit(Element):
     def can_be_penetrated(self, by: "Element") -> bool: 
         return isinstance(by, Miner) and self.opened
     
-    def on_destroy(self) -> None: self.cave.next_level()
+    def on_destroy(self) -> None: self.game.cave.next_level()
 
