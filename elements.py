@@ -93,13 +93,9 @@ class Boulder(Ore):
 class Diamond(Ore):
     def __init__(self, game: Game, x: int, y: int) -> None:
        super().__init__(game, x, y, 4)
-       self.game.cave.to_collect += 1
 
     def can_be_penetrated(self, by: Element) -> bool: return isinstance(by, Miner)
     def can_break(self) -> bool:  return False
-
-    def on_destroy(self) -> None:
-       self.game.cave.to_collect -= 1
 
     def tick(self) -> None:
         if random.randint(0,2) == 1:
