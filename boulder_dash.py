@@ -20,16 +20,17 @@ class Cave:
             self.tiles.append([])
             for j in range(0,CAVE_WIDTH):
                 tile = None
-                c = CAVES[self.level - 1][CAVE_HEIGHT - 1 - i][j]
+                self.nb_diamonds = CAVES[self.level - 1][0]
+                c = CAVES[self.level - 1][CAVE_HEIGHT - i][j]
                 if   c == 'w': tile = Wall(self.game, j, i)
                 elif c == 'W': tile = MetalWall(self.game, j, i)
                 elif c == '.': tile = Soil(self.game, j, i)
                 elif c == 'r': tile = Boulder(self.game, j, i)
-                elif c == 'd': tile = Diamond(self.game, j, i) ; self.nb_diamonds += 1
+                elif c == 'd': tile = Diamond(self.game, j, i)
                 elif c == 'E': tile = Miner(self.game, j, i, self.nb_players); self.nb_players += 1
                 elif c == 'X': tile = Exit(self.game, j ,i)
                 elif c == 'f': tile = Enemy(self.game, j ,i)
-                elif c == 'b': tile = Butterfly(self.game, j ,i) ; self.nb_diamonds += 9
+                elif c == 'b': tile = Butterfly(self.game, j ,i)
                 elif c == '_': pass
                 else: tile = Unknown(self.game, j ,i) # TODO : 'a', 'b', 'm' ...
                 self.tiles[i].append(tile)

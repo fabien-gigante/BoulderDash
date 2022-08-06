@@ -31,6 +31,7 @@
     <Content Include="Tiles\Boulder64-0.png" />
     <Content Include="Tiles\Boulder8-0.png" />
     <Content Include="Tiles\Butterfly64-0.png" />
+    <Content Include="Tiles\Butterfly64-1.png" />
     <Content Include="Tiles\Diamond64-0.png" />
     <Content Include="Tiles\Diamond64-1.png" />
     <Content Include="Tiles\Diamond64-2.png" />
