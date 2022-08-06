@@ -31,26 +31,14 @@ class Cave:
         self.next_level(1)
 
     def load(self) -> None:
-        for i in range(0,CAVE_HEIGHT):
+        types = { 'w': BrickWall, 'W': MetalWall, '.': Soil, 'r': Boulder, 'd': Diamond, 'E': Entry, 'X': Exit, \
+                  'f': Firefly, 'b': Butterfly, '_': None } # TODO : m=magic wall, a=amoeba
+        for i in range(0, CAVE_HEIGHT):
             self.tiles.append([])
-            for j in range(0,CAVE_WIDTH):
-                tile = None
-                c = CAVES[self.level - 1][CAVE_HEIGHT - 1 - i][j]
-                if   c == 'w': tile = Wall(self.game, j, i)
-                elif c == 'W': tile = MetalWall(self.game, j, i)
-                elif c == '.': tile = Soil(self.game, j, i)
-                elif c == 'r': tile = Boulder(self.game, j, i)
-                elif c == 'd': tile = Diamond(self.game, j, i)
-                elif c == 'E': 
-                    player = self.game.players[self.nb_players]; self.nb_players += 1
-                    if player.life > 0: tile = Miner(self.game, j, i, player); 
-                elif c == 'X': tile = Exit(self.game, j ,i)
-                elif c == 'f': tile = Enemy(self.game, j ,i)
-                elif c == 'b': tile = Butterfly(self.game, j ,i)
-                elif c == 'm': tile = Unknown(self.game, j ,i) # TODO : magic wall
-                elif c == 'a': tile = Unknown(self.game, j ,i) # TODO : amoeba
-                elif c == '_': pass
-                else: tile = Unknown(self.game, j ,i)
+            for j in range(0, CAVE_WIDTH):
+                key = CAVES[self.level - 1][CAVE_HEIGHT - 1 - i][j]
+                type = types[key] if key in types else Unknown
+                tile = type(self.game, j, i) if not type is None else None
                 self.tiles[i].append(tile)
     
     def next_level(self, level : Optional[int] = None) -> None:

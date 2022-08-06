@@ -29,24 +29,19 @@
     <Content Include="caves.py" />
     <Content Include="README.md" />
     <Content Include="Tiles\Boulder64-0.png" />
-    <Content Include="Tiles\Boulder8-0.png" />
     <Content Include="Tiles\Butterfly64-0.png" />
     <Content Include="Tiles\Diamond64-0.png" />
     <Content Include="Tiles\Diamond64-1.png" />
     <Content Include="Tiles\Diamond64-2.png" />
     <Content Include="Tiles\Diamond64-3.png" />
-    <Content Include="Tiles\Diamond8-0.png" />
-    <Content Include="Tiles\Enemy64-0.png" />
+    <Content Include="Tiles\Firefly64-0.png" />
     <Content Include="Tiles\Exit64-0.png" />
     <Content Include="Tiles\Explosion64-0.png" />
     <Content Include="Tiles\MetalWall64-0.png" />
     <Content Include="Tiles\Miner64-0.png" />
-    <Content Include="Tiles\Miner8-0.png" />
     <Content Include="Tiles\Soil64-0.png" />
-    <Content Include="Tiles\Soil8-0.png" />
     <Content Include="Tiles\Unknown64-0.png" />
-    <Content Include="Tiles\Wall64-0.png" />
-    <Content Include="Tiles\Wall8-0.png" />
+    <Content Include="Tiles\BrickWall64-0.png" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Tiles\" />
