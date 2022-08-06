@@ -59,7 +59,7 @@ class Cave:
     def restart_level(self) -> None: self.next_level(self.level)
 
     def is_complete(self) -> bool: 
-        return self.to_collect == 0 and self.to_kill == 0
+        return self.nb_diamonds - self.game.players[0].score <= 0
 
     def set_status(self, status) -> None:
         self.status = status
