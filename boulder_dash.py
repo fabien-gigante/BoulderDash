@@ -2,41 +2,47 @@ import arcade
 from typing import Optional
 from elements import *
 from caves import *
-
-CAVE_WIDTH = 40
-CAVE_HEIGHT = 22
-SCREEN_WIDTH = 32 * CAVE_WIDTH
-SCREEN_HEIGHT = 32 * (CAVE_HEIGHT + 1)
-SCREEN_TITLE = "Boulder Dash"
+from collections import namedtuple
 
 class Player:
-    def __init__(self, game: "Game", id: int = 0) -> None:
-        self.game = game ; self.id = id
-        self.score = 0 ; self.life = 3
+    Controls = namedtuple('Controls', 'up left down right')
+
+    def __init__(self, game: 'Game', id: int = 0) -> None:
+        self.game = game ; self.id = id; self.score = 0 ; self.life = 3
         self.controls = \
-            (arcade.key.UP, arcade.key.LEFT, arcade.key.DOWN, arcade.key.RIGHT) if id == 0 else \
-            (arcade.key.Z, arcade.key.Q, arcade.key.S, arcade.key.D) if id == 1 else \
-            (arcade.key.I, arcade.key.J, arcade.key.K, arcade.key.L)
+            Player.Controls(arcade.key.UP, arcade.key.LEFT, arcade.key.DOWN, arcade.key.RIGHT) if id == 0 else \
+            Player.Controls(arcade.key.Z, arcade.key.Q, arcade.key.S, arcade.key.D) if id == 1 else \
+            Player.Controls(arcade.key.I, arcade.key.J, arcade.key.K, arcade.key.L)
+    
+    def pressed_up(self) -> bool: return self.controls.up in self.game.keys
+    def pressed_left(self) -> bool: return self.controls.left in self.game.keys
+    def pressed_down(self) -> bool: return self.controls.down in self.game.keys
+    def pressed_right(self) -> bool: return self.controls.right in self.game.keys
 
     def kill(self) -> None:
         self.life -= 1
         if any(p.life > 0 for p in self.game.players): 
-            self.game.cave.wait_restart = 0.5 # seconds
+            self.game.cave.set_status(Cave.FAILED)
         else: self.game.over()
 
 class Cave:
+    WIDTH = 40
+    HEIGHT = 22
+    IN_PROGRESS = 0
+    FAILED = -1
+    SUCCEEDED = 1
+
     def __init__(self, game: "Game") -> None:
         self.game = game ; self.game.cave = self
-        self.wait_restart = 0
         self.next_level(1)
 
     def load(self) -> None:
         types = { 'w': BrickWall, 'W': MetalWall, '.': Soil, 'r': Boulder, 'd': Diamond, 'E': Entry, 'X': Exit, \
                   'f': Firefly, 'b': Butterfly, '_': None } # TODO : m=magic wall, a=amoeba
-        for i in range(0, CAVE_HEIGHT):
+        for i in range(0, Cave.HEIGHT):
             self.tiles.append([])
-            for j in range(0, CAVE_WIDTH):
-                key = CAVES[self.level - 1][CAVE_HEIGHT - 1 - i][j]
+            for j in range(0, Cave.WIDTH):
+                key = CAVES[self.level - 1][Cave.HEIGHT - 1 - i][j]
                 type = types[key] if key in types else Unknown
                 tile = type(self.game, j, i) if not type is None else None
                 self.tiles[i].append(tile)
@@ -44,31 +50,35 @@ class Cave:
     def next_level(self, level : Optional[int] = None) -> None:
         self.level = min(CAVES.__len__(), max(1, self.level + 1 if level is None else level))
         self.nb_players = 0 ; self.to_collect = 0 ; self.to_kill = 0
-        self.tiles = []
-        self.load();
+        self.tiles = [] ; self.status = Cave.IN_PROGRESS ; self.wait = 0
+        self.load()
 
     def restart_level(self) -> None: self.next_level(self.level)
 
-    def complete(self) -> bool: 
+    def is_complete(self) -> bool: 
         return self.to_collect == 0 and self.to_kill == 0
 
-    def within_bounds(self, x: int ,y: int) -> bool:
-        return x >= 0 and y >= 0 and x < CAVE_WIDTH and y < CAVE_HEIGHT
+    def set_status(self, status) -> None:
+        self.status = status
+        self.wait = 0.5 # seconds
 
-    def at(self, x: int , y: int ) -> Optional["Element"]:
+    def within_bounds(self, x: int ,y: int) -> bool:
+        return x >= 0 and y >= 0 and x < Cave.WIDTH and y < Cave.HEIGHT
+
+    def at(self, x: int , y: int ) -> Optional['Element']:
         return self.tiles[y][x] if self.within_bounds(x,y) else None
 
-    def replace(self, e1 : "Element", e2 : Optional["Element"]) -> None:
+    def replace(self, e1 : 'Element', e2 : Optional['Element']) -> None:
         if self.at(e1.x, e1.y) == e1: # still there ?
           self.tiles[e1.y][e1.x] = e2
           e1.on_destroy();
 
-    def can_move(self, element: "Element", x: int , y: int ) -> bool:
+    def can_move(self, element: 'Element', x: int , y: int ) -> bool:
         if not self.within_bounds(x,y): return False
         tile = self.at(x,y)
         return tile is None or tile.can_be_penetrated(element)
 
-    def try_move(self, element: "Element", x: int , y: int ) -> bool:
+    def try_move(self, element: 'Element', x: int , y: int ) -> bool:
         if not self.can_move(element, x, y): return False
         tile = self.at(x,y)
         self.tiles[element.y][element.x] = None
@@ -84,9 +94,11 @@ class Cave:
                 if not tile is None: tile.draw()
 
     def on_update(self, delta_time) -> None:
-        if self.wait_restart > 0:
-            self.wait_restart -= delta_time
-            if self.wait_restart <= 0: self.restart_level()
+        if self.wait > 0:
+            self.wait -= delta_time
+            if self.wait <= 0:
+               if self.status == Cave.SUCCEEDED: self.next_level()
+               elif self.status == Cave.FAILED: self.restart_level()
         for row in self.tiles:
             for tile in row:
                 if not tile is None: tile.on_update(delta_time)
@@ -102,8 +114,13 @@ class Cave:
                         if not tile is None: tile.on_destroy()
 
 class Game(arcade.Window):
+    TILE_SIZE = 32
+    WIDTH = TILE_SIZE * Cave.WIDTH
+    HEIGHT = TILE_SIZE * (Cave.HEIGHT + 1)
+    TITLE = 'Boulder Dash'
+
     def __init__(self):
-        super().__init__(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_TITLE)
+        super().__init__(Game.WIDTH, Game.HEIGHT, Game.TITLE)
         self.players = [ Player(self) ]
         self.keys = []
         self.camera = None
@@ -112,7 +129,7 @@ class Game(arcade.Window):
     def setup(self) -> None:
         Cave(self)
         arcade.set_background_color(arcade.color.BLACK);
-        self.camera = arcade.Camera(SCREEN_WIDTH, SCREEN_HEIGHT)
+        self.camera = arcade.Camera(Game.WIDTH, Game.HEIGHT)
 
     def on_draw(self) -> None:
         self.camera.use()
@@ -136,5 +153,5 @@ def main() -> None:
     Game().setup()
     arcade.run()
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

@@ -1,34 +1,30 @@
 import arcade
 import random
 from typing import Optional
-from boulder_dash import Game, Player
+from boulder_dash import Game, Cave, Player
 from collections import namedtuple
 
-TILE_SIZE = 64
-TILE_SCALE = 0.5
-DEFAULT_SPEED = 16 # squares per second
-KEY_UP = 0
-KEY_LEFT = 1
-KEY_DOWN = 2
-KEY_RIGHT = 3
-
-Direction = namedtuple('Direction', 'x y')
+Vector = namedtuple('Vector', 'x y')
 
 class Element(arcade.Sprite):
+    TILE_SIZE = 64
+    TILE_SCALE = Game.TILE_SIZE / TILE_SIZE
+    DEFAULT_SPEED = 16 # squares per second
+
     def __init__(self, game: Game, x: int, y: int, n: int = 1) -> None:
-        super().__init__(None, TILE_SCALE)
+        super().__init__(None, Element.TILE_SCALE)
         for i in range(0, n): 
-            self.append_texture(arcade.load_texture("Tiles/" + type(self).__name__ + str(TILE_SIZE) + "-" + str(i) + ".png"))
+            self.append_texture(arcade.load_texture('Tiles/' + type(self).__name__ + str(Element.TILE_SIZE) + '-' + str(i) + '.png'))
         if n > 0: self.set_texture(0)
         self.game = game
         self.x = x ; self.y = y;
-        self.wait = 0 ; self.speed = DEFAULT_SPEED
+        self.wait = 0 ; self.speed = Element.DEFAULT_SPEED
         self.moved = self.moving = False
         self.compute_pos()
     
     def compute_pos(self) -> None:
-        self.center_x = TILE_SIZE * TILE_SCALE * (self.x + 0.5)
-        self.center_y = TILE_SIZE * TILE_SCALE * (self.y + 0.5)
+        self.center_x = Element.TILE_SIZE * Element.TILE_SCALE * (self.x + 0.5)
+        self.center_y = Element.TILE_SIZE * Element.TILE_SCALE * (self.y + 0.5)
 
     def can_move(self, ix: int, iy: int)  -> bool:
         return self.game.cave.can_move(self, self.x + ix, self.y + iy)
@@ -50,8 +46,8 @@ class Element(arcade.Sprite):
             self.moving = self.moved
 
     def tick(self): pass
-    def can_be_penetrated(self, by: "Element") -> bool: return False
-    def on_moved(self, into: Optional["Element"]) -> None: pass
+    def can_be_penetrated(self, by: 'Element') -> bool: return False
+    def on_moved(self, into: Optional['Element']) -> None: pass
     def can_break(self) -> bool:  return True
     def on_destroy(self) -> None: pass
 
@@ -107,16 +103,16 @@ class Diamond(Ore):
 class Explosion(Element):
     def __init__(self, game: Game, x: int, y: int) -> None:
         super().__init__(game, x, y)
-        self.wait = 1/8
+        self.wait = .125 # seconds
     def can_be_penetrated(self, by: Element) -> bool: return True
     def tick(self) -> None: self.game.cave.replace(self, None)
 
 class Entry(Element):
     def __init__(self, game: Game, x: int, y: int) -> None:
         super().__init__(game, x, y, 0)
-        self.append_texture(arcade.load_texture("Tiles/" + MetalWall.__name__ + str(TILE_SIZE) + "-0.png"))
+        self.append_texture(arcade.load_texture('Tiles/' + MetalWall.__name__ + str(Element.TILE_SIZE) + '-0.png'))
         self.set_texture(0)
-        self.wait = 1/2
+        self.wait = 0.5 # seconds
         self.player = self.game.players[self.game.cave.nb_players]
         self.game.cave.nb_players += 1
 
@@ -127,17 +123,17 @@ class Entry(Element):
 class Exit(Element):
     def __init__(self, game: Game, x: int, y: int) -> None:
         super().__init__(game, x, y)
-        self.append_texture(arcade.load_texture("Tiles/" + MetalWall.__name__ + str(TILE_SIZE) + "-0.png"))
+        self.append_texture(arcade.load_texture('Tiles/' + MetalWall.__name__ + str(Element.TILE_SIZE) + '-0.png'))
         self.opened = False ; self.set_texture(1)
 
     def tick(self) -> None:
-        if self.game.cave.complete() :
+        if self.game.cave.is_complete() :
             self.opened = True ; self.set_texture(0)
 
     def can_be_penetrated(self, by: Element) -> bool: 
         return isinstance(by, Miner) and self.opened
     
-    def on_destroy(self) -> None: self.game.cave.next_level()
+    def on_destroy(self) -> None: self.game.cave.set_status(Cave.SUCCEEDED)
 
 class Character(Element):
     def __init__(self, game: Game, x: int, y: int) -> None: super().__init__(game, x, y)
@@ -157,17 +153,14 @@ class Miner(Character):
         if isinstance(into, Diamond): self.player.score += 1
         self.pushing = 0
 
-    def pressed(self, key: int) -> bool:
-        return self.player.controls[key] in self.game.keys
-
     def tick(self) -> None:
-        if   self.pressed(KEY_LEFT):  
+        if self.player.pressed_left():  
             if not self.try_move(-1, 0): self.try_push(-1)
-        elif self.pressed(KEY_RIGHT):
+        elif self.player.pressed_right():
             if not self.try_move(+1, 0): self.try_push(+1)
-        elif self.pressed(KEY_UP):
+        elif self.player.pressed_up():
             self.try_move(0, +1)
-        elif self.pressed(KEY_DOWN):
+        elif self.player.pressed_down():
             self.try_move(0, -1)
     
     def try_push(self, ix: int) -> bool:
@@ -186,7 +179,7 @@ class Miner(Character):
 class Firefly(Character):
     def __init__(self, game: Game, x: int, y: int) -> None:
         super().__init__(game, x, y)
-        self.speed /= 2 ; self.dir = Direction(-1, 0)
+        self.speed /= 2 ; self.dir = Vector(-1, 0)
 
     def can_be_penetrated(self, by: Element) -> bool:
         return super().can_be_penetrated(by) or isinstance(by, Miner)
@@ -198,13 +191,13 @@ class Firefly(Character):
                self.try_move(*self.dir)
         # else follow the right wall...
         elif self.try_move(self.dir.y, -self.dir.x):
-            self.dir = Direction(self.dir.y, -self.dir.x)
+            self.dir = Vector(self.dir.y, -self.dir.x)
         elif self.try_move(*self.dir):
             pass # go straight
         elif self.try_move(-self.dir.y, self.dir.x):
-            self.dir = Direction(-self.dir.y, self.dir.x)
+            self.dir = Vector(-self.dir.y, self.dir.x)
         elif self.try_move(-self.dir.x, -self.dir.y):
-            self.dir = Direction(-self.dir.x, -self.dir.y)
+            self.dir = Vector(-self.dir.x, -self.dir.y)
 
 class Butterfly(Firefly):
     def __init__(self, game: Game, x: int, y: int) -> None:
