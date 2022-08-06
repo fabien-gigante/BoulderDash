@@ -46,27 +46,27 @@ class Cave:
     def load(self) -> None:
         types = { 'w': BrickWall, 'W': MetalWall, '.': Soil, 'r': Boulder, 'd': Diamond, 'E': Entry, 'X': Exit, \
                   'f': Firefly, 'b': Butterfly, '_': None } # TODO : m=magic wall, a=amoeba
-        self.nb_diamonds = CAVES[self.level - 1][0]
+        self.to_collect = CAVE_GOALS[self.level - 1]
         for i in range(0, Cave.HEIGHT):
             self.tiles.append([])
             for j in range(0, Cave.WIDTH):
-                key = CAVES[self.level - 1][Cave.HEIGHT - i][j]
+                key = CAVE_MAPS[self.level - 1][Cave.HEIGHT -1 - i][j]
                 type = types[key] if key in types else Unknown
                 tile = type(self.game, j, i) if not type is None else None
                 self.tiles[i].append(tile)
     
     def next_level(self, level : Optional[int] = None) -> None:
-        self.level = min(CAVES.__len__(), max(1, self.level + 1 if level is None else level))
+        self.level = min(CAVE_MAPS.__len__(), max(1, self.level + 1 if level is None else level))
         self.width = Cave.WIDTH_SMALL if self.level % 5 ==4 else Cave.WIDTH
         self.height = Cave.HEIGHT_SMALL if self.level % 5 ==4 else Cave.HEIGHT
-        self.nb_players = 0 ; self.to_collect = 0 ; self.to_kill = 0
+        self.nb_players = 0 ; self.to_collect = 0 ; self.collected = 0
         self.tiles = [] ; self.status = Cave.IN_PROGRESS ; self.wait = 0
         self.load()
 
     def restart_level(self) -> None: self.next_level(self.level)
 
     def is_complete(self) -> bool: 
-        return self.nb_diamonds - self.game.players[0].score <= 0
+        return self.collected >= self.to_collect
 
     def set_status(self, status) -> None:
         self.status = status
@@ -152,7 +152,7 @@ class Game(arcade.Window):
             self.camera_gui = arcade.Camera(width, height)
             if not self.center is None: self.center_on(*self.center)
             if width > Cave.WIDTH * Game.TILE_SIZE:
-              self.camera_gui.move_to( ((Cave.WIDTH * Game.TILE_SIZE - width)/2, 0) )
+              self.camera_gui.move_to( ((Game.WIDTH - width)/2,  Game.HEIGHT - (Cave.HEIGHT+4) * Game.TILE_SIZE ))
 
     def center_on(self, x, y, speed = 1) -> None:
         self.center = (x, y)
@@ -171,9 +171,8 @@ class Game(arcade.Window):
         self.camera.move_to((cx, cy) , speed )
 
     def print(self, x: int, w:int, value) -> None:
-        (color, align, w) = (arcade.color.WHITE, 'left', w) if w >= 0 else (arcade.color.YELLOW, 'right', -w)
-        h = Cave.HEIGHT * Game.TILE_SIZE + 4* Game.TILE_SIZE if self.height > Game.HEIGHT else Game.HEIGHT
-        arcade.draw_text(str(value), x*Game.TILE_SIZE, h - 7/8 * Game.TILE_SIZE, color, Game.TILE_SIZE, w * Game.TILE_SIZE, align, Game.FONT)
+        (color, align, w) = (arcade.color.GRULLO, 'left', w) if w >= 0 else (arcade.color.DARK_PASTEL_GREEN, 'right', -w)
+        arcade.draw_text(str(value), x*Game.TILE_SIZE, Game.HEIGHT - 7/8 * Game.TILE_SIZE, color, Game.TILE_SIZE, w * Game.TILE_SIZE, align, Game.FONT)
 
     def on_draw(self) -> None:
         self.camera.use()
@@ -181,9 +180,11 @@ class Game(arcade.Window):
         self.cave.draw()
 
         self.camera_gui.use()
-        self.print(0, 5, 'LEVEL') ; self.print(0, -5, self.cave.level)
-        self.print(10, 5, 'LIFE') ; self.print(10, -5, self.players[0].life)
-        self.print(30, 5, 'SCORE') ; self.print(30, -10, self.players[0].score)
+        arcade.draw_lrtb_rectangle_filled(0, self.width, Game.HEIGHT, Game.HEIGHT - Game.TILE_SIZE, (0,0,0,192))
+        self.print(0, 4, 'LEVEL') ; self.print(0, -4, self.cave.level)
+        self.print(5, 3, 'LIFE') ;  self.print(5, -3, self.players[0].life)
+        self.print(9, 5, 'GOAL') ;  self.print(9, -5, str(self.cave.collected)+'/'+str(self.cave.to_collect))
+        self.print(15, 5, 'SCORE') ; self.print(15, -5, self.players[0].score)
 
     def on_key_press(self, key, modifiers): 
         self.keys.append(key)

@@ -162,7 +162,8 @@ class Miner(Character):
             (super().can_be_penetrated(by) or isinstance(by, Firefly))
 
     def on_moved(self, into: Optional[Element]) -> None:
-        if isinstance(into, Diamond): self.player.score += 1
+        if isinstance(into, Diamond):
+            self.game.cave.collected += 1 ; self.player.score += 1
         self.pushing = None
 
     def tick(self) -> None:
