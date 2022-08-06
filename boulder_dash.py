@@ -20,6 +20,9 @@ class Player:
         if self.controls.down in self.game.keys: return (0,-1)
         if self.controls.right in self.game.keys: return (+1,0)
         else: return (0,0)
+    
+    def center_on(self, x, y) -> None:
+       if self.id == 0: self.game.center_on(x, y, 0.1)
 
     def kill(self) -> None:
         self.life -= 1
@@ -29,7 +32,9 @@ class Player:
 
 class Cave:
     WIDTH = 40
+    WIDTH_SMALL = 20
     HEIGHT = 22
+    HEIGHT_SMALL = 12
     IN_PROGRESS = 0
     FAILED = -1
     SUCCEEDED = 1
@@ -51,6 +56,8 @@ class Cave:
     
     def next_level(self, level : Optional[int] = None) -> None:
         self.level = min(CAVES.__len__(), max(1, self.level + 1 if level is None else level))
+        self.width = Cave.WIDTH_SMALL if self.level % 5 ==4 else Cave.WIDTH
+        self.height = Cave.HEIGHT_SMALL if self.level % 5 ==4 else Cave.HEIGHT
         self.nb_players = 0 ; self.to_collect = 0 ; self.to_kill = 0
         self.tiles = [] ; self.status = Cave.IN_PROGRESS ; self.wait = 0
         self.load()
@@ -117,8 +124,10 @@ class Cave:
 
 class Game(arcade.Window):
     TILE_SIZE = 40
-    WIDTH = TILE_SIZE * Cave.WIDTH
-    HEIGHT = TILE_SIZE * (Cave.HEIGHT + 1)
+    WIDTH_TILES = Cave.WIDTH_SMALL # Cave.WIDTH
+    HEIGHT_TILES = Cave.HEIGHT_SMALL # Cave.HEIGHT
+    WIDTH = TILE_SIZE * WIDTH_TILES
+    HEIGHT = TILE_SIZE * (HEIGHT_TILES + 1)
     TITLE = 'Boulder Dash'
     FONT = 'Kenney High Square'
 
@@ -129,21 +138,41 @@ class Game(arcade.Window):
         self.camera = None
         self.camera_gui = None
         self.cave = None
+        self.center = None
 
     def setup(self) -> None:
-        Cave(self)
         arcade.set_background_color(arcade.color.BLACK)
         self.on_resize(self.width, self.height)
+        Cave(self)
     
     def on_resize(self, width: int, height: int) -> None:
-        self.camera = arcade.Camera(width, height)
-        self.camera_gui = arcade.Camera(width, height)
-        self.camera.move_to( ((Game.WIDTH - width)/2, (Game.HEIGHT - height)/2) )
-        self.camera_gui.move_to( ((Game.WIDTH - width)/2, (Game.HEIGHT - height)/2) )
+        if self.camera is None or self.camera.viewport_width != width or self.camera.viewport_height != height:
+            self.camera = arcade.Camera(width, height)
+            self.camera_gui = arcade.Camera(width, height)
+            if not self.center is None: self.center_on(*self.center)
+            if width > Cave.WIDTH * Game.TILE_SIZE:
+              self.camera_gui.move_to( ((Cave.WIDTH * Game.TILE_SIZE - width)/2, 0) )
+
+    def center_on(self, x, y, speed = 1) -> None:
+        self.center = (x, y)
+        if self.width > Cave.WIDTH * Game.TILE_SIZE:
+            cx = (Cave.WIDTH * Game.TILE_SIZE - self.width) / 2
+        else:
+            cx = x - self.width / 2
+            if cx < 0: cx = 0
+            if cx > self.cave.width * Game.TILE_SIZE - self.width : cx = self.cave.width * Game.TILE_SIZE - self.width
+        if self.height > Cave.HEIGHT * Game.TILE_SIZE + Game.TILE_SIZE:
+            cy = (Cave.HEIGHT * Game.TILE_SIZE + Game.TILE_SIZE -  self.height) / 2
+        else:
+            cy = y - self.height / 2
+            if cy < 0: cy = 0
+            if cy > self.cave.height * Game.TILE_SIZE - self.height + Game.TILE_SIZE : cy = self.cave.height * Game.TILE_SIZE - self.height + Game.TILE_SIZE
+        self.camera.move_to((cx, cy) , speed )
 
     def print(self, x: int, w:int, value) -> None:
         (color, align, w) = (arcade.color.WHITE, 'left', w) if w >= 0 else (arcade.color.YELLOW, 'right', -w)
-        arcade.draw_text(str(value), x*Game.TILE_SIZE, Game.HEIGHT - 7/8 * Game.TILE_SIZE, color, Game.TILE_SIZE, w * Game.TILE_SIZE, align, Game.FONT)
+        h = Cave.HEIGHT * Game.TILE_SIZE + 4* Game.TILE_SIZE if self.height > Game.HEIGHT else Game.HEIGHT
+        arcade.draw_text(str(value), x*Game.TILE_SIZE, h - 7/8 * Game.TILE_SIZE, color, Game.TILE_SIZE, w * Game.TILE_SIZE, align, Game.FONT)
 
     def on_draw(self) -> None:
         self.camera.use()

@@ -123,6 +123,7 @@ class Entry(Element):
         self.wait = 0.75 # seconds
         self.player = self.game.players[self.game.cave.nb_players]
         self.game.cave.nb_players += 1
+        self.game.center_on(self.center_x, self.center_y)
 
     def tick(self) -> None:
         if self.player.life > 0: self.game.cave.replace(self, Miner(self.game, self.x, self.y, self.player)); 
@@ -169,6 +170,7 @@ class Miner(Character):
             self.dir = self.player.get_direction()
             if self.dir == (0,0): return
             if not self.try_move(*self.dir): self.try_push()
+        self.player.center_on(self.center_x, self.center_y)
     
     def try_push(self) -> bool:
         if self.dir == (-1,0) or self.dir == (+1,0):
