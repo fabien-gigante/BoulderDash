@@ -1,5 +1,5 @@
 import arcade
-from typing import Optional
+from typing import Optional, Tuple
 from elements import *
 from caves import *
 from collections import namedtuple
@@ -14,10 +14,12 @@ class Player:
             Player.Controls(arcade.key.Z, arcade.key.Q, arcade.key.S, arcade.key.D) if id == 1 else \
             Player.Controls(arcade.key.I, arcade.key.J, arcade.key.K, arcade.key.L)
     
-    def pressed_up(self) -> bool: return self.controls.up in self.game.keys
-    def pressed_left(self) -> bool: return self.controls.left in self.game.keys
-    def pressed_down(self) -> bool: return self.controls.down in self.game.keys
-    def pressed_right(self) -> bool: return self.controls.right in self.game.keys
+    def get_direction(self) -> Tuple[int,int]:
+        if self.controls.up in self.game.keys: return (0,+1)
+        if self.controls.left in self.game.keys: return (-1,0)
+        if self.controls.down in self.game.keys: return (0,-1)
+        if self.controls.right in self.game.keys: return (+1,0)
+        else: return (0,0)
 
     def kill(self) -> None:
         self.life -= 1
@@ -60,12 +62,12 @@ class Cave:
 
     def set_status(self, status) -> None:
         self.status = status
-        self.wait = 0.5 # seconds
+        self.wait = 0.25 # seconds
 
     def within_bounds(self, x: int ,y: int) -> bool:
         return x >= 0 and y >= 0 and x < Cave.WIDTH and y < Cave.HEIGHT
 
-    def at(self, x: int , y: int ) -> Optional['Element']:
+    def at(self, x: int , y: int) -> Optional['Element']:
         return self.tiles[y][x] if self.within_bounds(x,y) else None
 
     def replace(self, e1 : 'Element', e2 : Optional['Element']) -> None:
@@ -114,7 +116,7 @@ class Cave:
                         if not tile is None: tile.on_destroy()
 
 class Game(arcade.Window):
-    TILE_SIZE = 32
+    TILE_SIZE = 40 # 32
     WIDTH = TILE_SIZE * Cave.WIDTH
     HEIGHT = TILE_SIZE * (Cave.HEIGHT + 1)
     TITLE = 'Boulder Dash'
@@ -142,7 +144,9 @@ class Game(arcade.Window):
         elif key == arcade.key.NUM_SUBTRACT : self.cave.next_level(self.cave.level - 1)
         elif key == arcade.key.NUM_MULTIPLY : self.players = [ Player(self) ] ; self.cave.restart_level()
 
-    def on_key_release(self, key, modifiers): self.keys.remove(key)
+    def on_key_release(self, key, modifiers):
+       if key in self.keys: self.keys.remove(key)
+
     def on_update(self, delta_time):
         self.cave.on_update(delta_time)
 

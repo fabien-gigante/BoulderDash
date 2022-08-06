@@ -4,10 +4,8 @@ from typing import Optional
 from boulder_dash import Game, Cave, Player
 from collections import namedtuple
 
-Vector = namedtuple('Vector', 'x y')
-
 class Element(arcade.Sprite):
-    TILE_SIZE = 64
+    TILE_SIZE = 16 # 64
     TILE_SCALE = Game.TILE_SIZE / TILE_SIZE
     DEFAULT_SPEED = 16 # squares per second
 
@@ -31,6 +29,9 @@ class Element(arcade.Sprite):
     def compute_pos(self) -> None:
         self.center_x = Element.TILE_SIZE * Element.TILE_SCALE * (self.x + 0.5)
         self.center_y = Element.TILE_SIZE * Element.TILE_SCALE * (self.y + 0.5)
+
+    def neighbor(self, ix:int, iy:int) -> Optional['Element'] :
+        return self.game.cave.at(self.x + ix, self.y + iy)
 
     def can_move(self, ix: int, iy: int)  -> bool:
         return self.game.cave.can_move(self, self.x + ix, self.y + iy)
@@ -83,7 +84,7 @@ class Ore(Element):
         self.try_roll(ix) or self.try_roll(-ix)
 
     def try_roll(self, ix: int) -> bool:
-        below = self.game.cave.at(self.x, self.y -1)
+        below = self.neighbor(0, -1)
         return (isinstance(below, Ore) or isinstance(below, Wall)) and self.can_move(ix, -1) and self.try_move(ix, 0)
 
 class Boulder(Ore):
@@ -101,9 +102,10 @@ class Diamond(Ore):
        self.game.cave.to_collect -= 1
 
     def tick(self) -> None:
-        shine = random.randint(1, 40)
-        if shine > 3: shine = 0
-        self.set_skin(shine)
+        if random.randint(0,2) == 1:
+            shine = random.randint(1, 40)
+            if shine > 3: shine = 0
+            self.set_skin(shine)
         super().tick()
 
 class Explosion(Element):
@@ -116,9 +118,9 @@ class Explosion(Element):
 class Entry(Element):
     def __init__(self, game: Game, x: int, y: int) -> None:
         super().__init__(game, x, y, 0)
-        self.add_skin(MetalWall.__name__, 0)
+        self.add_skin(Exit.__name__, 1)
         self.set_skin(0)
-        self.wait = 0.5 # seconds
+        self.wait = 0.75 # seconds
         self.player = self.game.players[self.game.cave.nb_players]
         self.game.cave.nb_players += 1
 
@@ -128,13 +130,12 @@ class Entry(Element):
 
 class Exit(Element):
     def __init__(self, game: Game, x: int, y: int) -> None:
-        super().__init__(game, x, y)
-        self.add_skin(MetalWall.__name__, 0)
-        self.opened = False ; self.set_skin(1)
+        super().__init__(game, x, y, 2)
+        self.opened = False
 
     def tick(self) -> None:
         if self.game.cave.is_complete() :
-            self.opened = True ; self.set_skin(0)
+            self.opened = True ; self.set_skin(1)
 
     def can_be_penetrated(self, by: Element) -> bool: 
         return isinstance(by, Miner) and self.opened
@@ -142,40 +143,40 @@ class Exit(Element):
     def on_destroy(self) -> None: self.game.cave.set_status(Cave.SUCCEEDED)
 
 class Character(Element):
-    def __init__(self, game: Game, x: int, y: int, n: int = 1) -> None: super().__init__(game, x, y, n)
+    def __init__(self, game: Game, x: int, y: int, n: int = 1) -> None:
+       super().__init__(game, x, y, n)
+       self.dir = (0, 0)
+
     def can_be_penetrated(self, by: Element) -> bool: return (isinstance(by, Ore) and by.moving)
     def on_destroy(self) -> None: self.game.cave.explode(self.x, self.y)
 
 class Miner(Character):
     def __init__(self, game: Game, x: int, y: int, player: Player) -> None:
         super().__init__(game, x, y)
-        self.pushing = 0
+        self.pushing = None
         self.player = player
 
     def can_be_penetrated(self, by: Element) -> bool:
-        return super().can_be_penetrated(by) or isinstance(by, Firefly)
+        return self.game.cave.status == Cave.IN_PROGRESS \
+            and super().can_be_penetrated(by) or isinstance(by, Firefly)
 
     def on_moved(self, into: Optional[Element]) -> None:
         if isinstance(into, Diamond): self.player.score += 1
-        self.pushing = 0
+        self.pushing = None
 
     def tick(self) -> None:
-        if self.player.pressed_left():  
-            if not self.try_move(-1, 0): self.try_push(-1)
-        elif self.player.pressed_right():
-            if not self.try_move(+1, 0): self.try_push(+1)
-        elif self.player.pressed_up():
-            self.try_move(0, +1)
-        elif self.player.pressed_down():
-            self.try_move(0, -1)
+        if self.game.cave.status == Cave.IN_PROGRESS:
+            self.dir = self.player.get_direction()
+            if self.dir == (0,0): return
+            if not self.try_move(*self.dir): self.try_push()
     
-    def try_push(self, ix: int) -> bool:
-        pushed = self.game.cave.at(self.x + ix, self.y)
-        if not isinstance(pushed, Boulder): return False
-        if self.pushing != ix: 
-           self.pushing = ix; self.wait = 1 / self.speed
-           return False
-        if pushed.try_move(ix, 0): return self.try_move(ix, 0)
+    def try_push(self) -> bool:
+        if self.dir == (-1,0) or self.dir == (+1,0):
+            pushed = self.neighbor(*self.dir)
+            if isinstance(pushed, Boulder):
+                if self.pushing == self.dir:
+                    if pushed.try_move(*self.dir): return self.try_move(*self.dir)
+                else: self.pushing = self.dir; self.wait = 1 / self.speed
         return False
 
     def on_destroy(self) -> None:
@@ -185,26 +186,23 @@ class Miner(Character):
 class Firefly(Character):
     def __init__(self, game: Game, x: int, y: int) -> None:
         super().__init__(game, x, y, 2)
-        self.speed /= 2 ; self.dir = Vector(-1, 0)
+        self.speed /= 2 ; self.dir = (-1, 0)
 
     def can_be_penetrated(self, by: Element) -> bool:
         return super().can_be_penetrated(by) or isinstance(by, Miner)
 
     def tick(self) -> None:
         self.next_skin()
-        # if in wide 3x3 open area, go straight
-        if self.can_move(-1,0) and self.can_move(1,0) and self.can_move(0,-1) and self.can_move(0,1) \
-           and self.can_move(-1,-1) and self.can_move(1,-1) and self.can_move(-1,1) and self.can_move(1,1):
-               self.try_move(*self.dir)
+        (ix,iy) = self.dir
+        # if adjacent to a miner, self-destruct
+        if isinstance(self.neighbor(-1,0), Miner) or isinstance(self.neighbor(+1,0), Miner) or \
+           isinstance(self.neighbor(0,-1), Miner) or isinstance(self.neighbor(0,+1), Miner):
+              self.game.cave.replace(self, None)
         # else follow the right wall...
-        elif self.try_move(self.dir.y, -self.dir.x):
-            self.dir = Vector(self.dir.y, -self.dir.x)
-        elif self.try_move(*self.dir):
-            pass # go straight
-        elif self.try_move(-self.dir.y, self.dir.x):
-            self.dir = Vector(-self.dir.y, self.dir.x)
-        elif self.try_move(-self.dir.x, -self.dir.y):
-            self.dir = Vector(-self.dir.x, -self.dir.y)
+        elif self.try_move(iy, -ix):  self.dir = (iy, -ix)
+        elif self.try_move(ix, iy):   pass # go straight
+        elif self.try_move(-iy, ix):  self.dir = (-iy, ix)
+        elif self.try_move(-ix, -iy): self.dir = (-ix, -iy)
 
 class Butterfly(Firefly):
     def __init__(self, game: Game, x: int, y: int) -> None:
