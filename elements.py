@@ -2,6 +2,7 @@ import arcade
 import random
 from typing import Optional
 from boulder_dash import Game, Player
+from collections import namedtuple
 
 TILE_SIZE = 64
 TILE_SCALE = 0.5
@@ -10,6 +11,8 @@ KEY_UP = 0
 KEY_LEFT = 1
 KEY_DOWN = 2
 KEY_RIGHT = 3
+
+Direction = namedtuple('Direction', 'x y')
 
 class Element(arcade.Sprite):
     def __init__(self, game: Game, x: int, y: int, n: int = 0) -> None:
@@ -164,24 +167,28 @@ class Exit(Element):
 class Enemy(Element):
     def __init__(self, game: Game, x: int, y: int) -> None:
         super().__init__(game, x, y)
-        self.speed /= 2 ; self.dir = [-1,0]
+        self.speed /= 2 ; self.dir = Direction(-1, 0)
 
     def can_be_penetrated(self, by: Element) -> bool:
         return isinstance(by, Ore)
 
     def on_moved(self, into: Optional[Element]) -> None:
-        if isinstance(into, Miner):
-            self.game.cave.explode(self.x, self.y)
+        if isinstance(into, Miner): self.game.cave.replace(self, None) # self destroy...
 
     def tick(self) -> None:
-        if self.try_move(self.dir[1], -self.dir[0]):
-            self.dir = [self.dir[1], -self.dir[0]]
-        elif self.try_move(self.dir[0], self.dir[1]):
-            self.dir = self.dir
-        elif self.try_move(-self.dir[1], self.dir[0]):
-            self.dir = [-self.dir[1], self.dir[0]]
-        elif self.try_move(-self.dir[0], -self.dir[1]):
-            self.dir = [-self.dir[0], -self.dir[1]]
+        # if in wide 3x3 open area, go straight
+        if self.can_move(-1,0) and self.can_move(1,0) and self.can_move(0,-1) and self.can_move(0,1) \
+           and self.can_move(-1,-1) and self.can_move(1,-1) and self.can_move(-1,1) and self.can_move(1,1):
+               self.try_move(*self.dir)
+        # else follow the right wall...
+        elif self.try_move(self.dir.y, -self.dir.x):
+            self.dir = Direction(self.dir.y, -self.dir.x)
+        elif self.try_move(*self.dir):
+            pass # go straight
+        elif self.try_move(-self.dir.y, self.dir.x):
+            self.dir = Direction(-self.dir.y, self.dir.x)
+        elif self.try_move(-self.dir.x, -self.dir.y):
+            self.dir = Direction(-self.dir.x, -self.dir.y)
 
     def on_destroy(self) -> None: self.game.cave.explode(self.x, self.y)
 

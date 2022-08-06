@@ -111,6 +111,7 @@ class Cave:
                     tile = self.tiles[j][i]
                     if tile is None or tile.can_break():
                         self.tiles[j][i] = type(self.game, i, j);
+                        if not tile is None: tile.on_destroy()
 
 class Game(arcade.Window):
     def __init__(self):
