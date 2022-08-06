@@ -116,33 +116,51 @@ class Cave:
                         if not tile is None: tile.on_destroy()
 
 class Game(arcade.Window):
-    TILE_SIZE = 40 # 32
+    TILE_SIZE = 40
     WIDTH = TILE_SIZE * Cave.WIDTH
     HEIGHT = TILE_SIZE * (Cave.HEIGHT + 1)
     TITLE = 'Boulder Dash'
+    FONT = 'Kenney High Square'
 
     def __init__(self):
         super().__init__(Game.WIDTH, Game.HEIGHT, Game.TITLE)
         self.players = [ Player(self) ]
         self.keys = []
         self.camera = None
-        self.Cave = None
+        self.camera_gui = None
+        self.cave = None
 
     def setup(self) -> None:
         Cave(self)
-        arcade.set_background_color(arcade.color.BLACK);
-        self.camera = arcade.Camera(Game.WIDTH, Game.HEIGHT)
+        arcade.set_background_color(arcade.color.BLACK)
+        self.on_resize(self.width, self.height)
+    
+    def on_resize(self, width: int, height: int) -> None:
+        self.camera = arcade.Camera(width, height)
+        self.camera_gui = arcade.Camera(width, height)
+        self.camera.move_to( ((Game.WIDTH - width)/2, (Game.HEIGHT - height)/2) )
+        self.camera_gui.move_to( ((Game.WIDTH - width)/2, (Game.HEIGHT - height)/2) )
+
+    def print(self, x: int, w:int, value) -> None:
+        (color, align, w) = (arcade.color.WHITE, 'left', w) if w >= 0 else (arcade.color.YELLOW, 'right', -w)
+        arcade.draw_text(str(value), x*Game.TILE_SIZE, Game.HEIGHT - 7/8 * Game.TILE_SIZE, color, Game.TILE_SIZE, w * Game.TILE_SIZE, align, Game.FONT)
 
     def on_draw(self) -> None:
         self.camera.use()
         self.clear()
         self.cave.draw()
 
+        self.camera_gui.use()
+        self.print(0, 5, 'LEVEL') ; self.print(0, -5, self.cave.level)
+        self.print(10, 5, 'LIFE') ; self.print(10, -5, self.players[0].life)
+        self.print(30, 5, 'SCORE') ; self.print(30, -10, self.players[0].score)
+
     def on_key_press(self, key, modifiers): 
         self.keys.append(key)
         if key == arcade.key.NUM_ADD : self.cave.next_level()
         elif key == arcade.key.NUM_SUBTRACT : self.cave.next_level(self.cave.level - 1)
         elif key == arcade.key.NUM_MULTIPLY : self.players = [ Player(self) ] ; self.cave.restart_level()
+        elif key == arcade.key.ENTER and modifiers & arcade.key.MOD_ALT : self.set_fullscreen(not self.fullscreen)
 
     def on_key_release(self, key, modifiers):
        if key in self.keys: self.keys.remove(key)
