@@ -46,10 +46,11 @@ class Cave:
     def load(self) -> None:
         types = { 'w': BrickWall, 'W': MetalWall, '.': Soil, 'r': Boulder, 'd': Diamond, 'E': Entry, 'X': Exit, \
                   'f': Firefly, 'b': Butterfly, '_': None } # TODO : m=magic wall, a=amoeba
+        self.nb_diamonds = CAVES[self.level - 1][0]
         for i in range(0, Cave.HEIGHT):
             self.tiles.append([])
             for j in range(0, Cave.WIDTH):
-                key = CAVES[self.level - 1][Cave.HEIGHT - 1 - i][j]
+                key = CAVES[self.level - 1][Cave.HEIGHT - i][j]
                 type = types[key] if key in types else Unknown
                 tile = type(self.game, j, i) if not type is None else None
                 self.tiles[i].append(tile)
@@ -65,7 +66,7 @@ class Cave:
     def restart_level(self) -> None: self.next_level(self.level)
 
     def is_complete(self) -> bool: 
-        return self.to_collect == 0 and self.to_kill == 0
+        return self.nb_diamonds - self.game.players[0].score <= 0
 
     def set_status(self, status) -> None:
         self.status = status
