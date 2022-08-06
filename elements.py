@@ -157,8 +157,8 @@ class Miner(Character):
         self.player = player
 
     def can_be_penetrated(self, by: Element) -> bool:
-        return self.game.cave.status == Cave.IN_PROGRESS \
-            and super().can_be_penetrated(by) or isinstance(by, Firefly)
+        return self.game.cave.status == Cave.IN_PROGRESS and \
+            (super().can_be_penetrated(by) or isinstance(by, Firefly))
 
     def on_moved(self, into: Optional[Element]) -> None:
         if isinstance(into, Diamond): self.player.score += 1
