@@ -115,7 +115,7 @@ class Ore(Element):
     
     def try_roll(self, ix: int) -> bool:
         below = self.neighbor(0, -1)
-        return (isinstance(below, Ore) or isinstance(below, Wall)) and self.can_move(ix, -1) and self.try_move(ix, 0)
+        return (isinstance(below, Ore) or isinstance(below, BrickWall)) and self.can_move(ix, -1) and self.try_move(ix, 0)
 
 class Boulder(Ore):
     sound = Sound(":resources:sounds/hurt1.wav")
@@ -307,11 +307,22 @@ class MagicWall(Wall):
 class Amoeba(Element):
     def __init__(self, game: Game, x: int, y: int) -> None:
         super().__init__(game, x, y)
+        self.DEFAULT_SPEED = 2
         self.add_skin(Amoeba.__name__, 0, True, False) ; self.add_skin(Amoeba.__name__, 0, False, True) ; self.add_skin(Amoeba.__name__, 0, True, True) 
         self.set_skin(random.randint(0, self.nb_skins - 1))
+        self.wait = 1 / self.DEFAULT_SPEED
+        self.trapped = False
 
     def tick(self) -> None:
-        if random.randint(0, 6) == 0: self.set_skin(random.randint(0, self.nb_skins - 1))
-        super().tick()
-
-    # TODO
+        if random.randint(0, 7) == 0: self.set_skin(random.randint(0, self.nb_skins - 1))
+        self.trapped = True
+        for look in [[-1,0], [+1,0], [0,-1], [0,+1]]:
+            if self.neighbor(look[0], look[1]) == None :
+                self.trapped = False
+                if random.randint(0, 3) == 0:
+                    self.game.cave.tiles[self.y+look[1]][self.x+look[0]] = Amoeba(self.game, self.x+look[0], self.y+look[1])
+            elif isinstance(self.neighbor(look[0], look[1]), Soil) :
+                self.trapped = False
+                if random.randint(0, 31) == 0:
+                    self.game.cave.tiles[self.y+look[1]][self.x+look[0]] = Amoeba(self.game, self.x+look[0], self.y+look[1])
+        self.wait = 1 / self.DEFAULT_SPEED
