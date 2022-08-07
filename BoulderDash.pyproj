@@ -49,6 +49,7 @@
     <Content Include="Tiles\Exit16-0.png" />
     <Content Include="Tiles\Exit16-1.png" />
     <Content Include="Tiles\Exit64-1.png" />
+    <Content Include="Tiles\ExpandingWall16-0.png" />
     <Content Include="Tiles\Explosion16-0.png" />
     <Content Include="Tiles\Firefly16-0.png" />
     <Content Include="Tiles\Firefly16-1.png" />

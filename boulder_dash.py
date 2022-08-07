@@ -47,7 +47,7 @@ class Cave:
 
     def load(self) -> None:
         types = { 'w': BrickWall, 'W': MetalWall, '.': Soil, 'r': Boulder, 'd': Diamond, 'E': Entry, 'X': Exit, \
-                  'f': Firefly, 'b': Butterfly, 'm': MagicWall, 'a': Amoeba, '_': None } # TODO : a=amoeba
+                  'f': Firefly, 'b': Butterfly, 'm': MagicWall, 'a': Amoeba, 'e': ExpandingWall, '_': None } # TODO : a=amoeba
         self.nb_players = 0 ; self.to_collect = 0 ; self.collected = 0
         self.tiles = [] ; self.status = Cave.IN_PROGRESS ; self.wait = 0
         self.height = CAVE_MAPS[self.level - 1].__len__()
