@@ -67,8 +67,30 @@ class Cave:
 
     def restart_level(self) -> None: self.next_level(self.level)
 
-    def is_complete(self) -> bool: 
+    def is_complete(self) -> bool:
+        if self.are_amoebas_trapped():
+            for i in range(len(self.tiles)):
+                for j in range(len(self.tiles[i])):
+                    if isinstance(self.tiles[i][j], Amoeba): self.tiles[i][j] = Diamond(self.game, j, i)
+        if self.are_amoebas_200():
+            for i in range(len(self.tiles)):
+                for j in range(len(self.tiles[i])):
+                    if isinstance(self.tiles[i][j], Amoeba): self.tiles[i][j] = Boulder(self.game, j, i)
         return self.collected >= self.to_collect
+
+    def are_amoebas_trapped(self) -> bool: 
+        for i in self.tiles:
+            for tile in i:
+                if isinstance(tile, Amoeba):
+                    if not(tile.trapped) : return False
+        return True
+
+    def are_amoebas_200(self) -> bool: 
+        n = 0
+        for i in self.tiles:
+            for tile in i:
+                if isinstance(tile, Amoeba): n+=1
+        return 200 <= n
 
     def set_status(self, status) -> None:
         self.status = status
