@@ -87,6 +87,23 @@ class MetalWall(Wall):
     def __init__(self, game: Game, x: int, y: int) -> None: super().__init__(game, x, y)
     def can_break(self) -> bool:  return False
 
+class ExpandingWall(Wall):
+    def __init__(self, game: Game, x: int, y: int) -> None:
+        super().__init__(game, x, y)
+        self.enable = False
+
+    def tick(self) -> None:
+        if self.enable:
+            #Expand to the left
+            if self.game.cave.tiles[self.y][self.x-1] == None:
+                self.game.cave.tiles[self.y][self.x-1] = ExpandingWall(self.game, self.x-1, self.y)
+                Boulder.sound_fall.play()
+            #Expand to the right
+            if self.game.cave.tiles[self.y][self.x+1] == None:
+                self.game.cave.tiles[self.y][self.x+1] = ExpandingWall(self.game, self.x+1, self.y)
+                Boulder.sound_fall.play()
+        else: self.enable = True
+
 class Ore(Element):
     def __init__(self, game: Game, x: int, y: int, n:int = 1) -> None: 
         super().__init__(game, x, y, n)
@@ -244,7 +261,7 @@ class Firefly(Character):
         (ix,iy) = self.dir
         # always go left
         return self.try_dir(-iy, ix) or self.try_dir(ix, iy) or self.try_dir(iy, -ix) or self.try_dir(-ix, -iy)
-
+    
     def tick(self) -> None:
         self.next_skin()
         # if adjacent to a miner, try to catch him
