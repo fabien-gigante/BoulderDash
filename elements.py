@@ -11,7 +11,7 @@ class Sound(arcade.Sound):
 class Element(arcade.Sprite):
     TILE_SIZE = 16 # 64
     TILE_SCALE = Game.TILE_SIZE / TILE_SIZE
-    DEFAULT_SPEED = 16 # squares per second
+    DEFAULT_SPEED = 15 # squares per second
     PRIORITY_HIGH = 0
     PRIORITY_MEDIUM = 1
     PRIORITY_LOW = 2
@@ -198,22 +198,30 @@ class Miner(Character):
             self.player.score += into.collect()
         self.pushing = None
 
+    def on_update(self, delta_time) -> None:
+        super().on_update(delta_time)
+        if self.moved: self.player.center_on(self.center_x, self.center_y)
+
     def tick(self) -> None:
-        if self.game.cave.status == Cave.IN_PROGRESS:
-            self.dir = self.player.get_direction()
-            if self.dir == (0,0): return
-            if not self.try_move(*self.dir): self.try_push()
-        self.player.center_on(self.center_x, self.center_y)
-    
-    def try_push(self) -> bool:
-        if self.dir == (-1,0) or self.dir == (+1,0):
-            pushed = self.neighbor(*self.dir)
+        if self.game.cave.status != Cave.IN_PROGRESS: return
+        for dir in [(-1,0),(+1,0),(0,-1),(0,+1)]:
+            if self.player.is_direction(*dir):
+                if self.try_dir(*dir): return
+        for dir in [(-1,0),(+1,0)]:
+            if self.player.is_direction(*dir):
+                if self.try_push(*dir): return
+
+    def try_push(self, ix:int, iy:int) -> bool:
+        if ix != 0 and iy == 0:
+            pushed = self.neighbor(ix, iy)
             if isinstance(pushed, Boulder):
-                if self.pushing == self.dir:
-                    if pushed.try_move(*self.dir): 
+                if self.pushing == (ix, iy):
+                    if pushed.try_move(ix, iy): 
                         Boulder.sound.play()
-                        return self.try_move(*self.dir)
-                else: self.pushing = self.dir; self.wait = 1 / self.speed
+                        return self.try_dir(ix, iy)
+                else:
+                    self.dir = (ix, iy)
+                    self.pushing = self.dir; self.wait = 1 / self.speed
         return False
 
     def on_destroy(self) -> None:

@@ -15,12 +15,13 @@ class Player:
             Player.Controls(arcade.key.Z, arcade.key.Q, arcade.key.S, arcade.key.D) if id == 1 else \
             Player.Controls(arcade.key.I, arcade.key.J, arcade.key.K, arcade.key.L)
     
-    def get_direction(self) -> Tuple[int,int]:
-        if self.controls.up in self.game.keys: return (0,+1)
-        if self.controls.left in self.game.keys: return (-1,0)
-        if self.controls.down in self.game.keys: return (0,-1)
-        if self.controls.right in self.game.keys: return (+1,0)
-        else: return (0,0)
+    def is_direction(self, ix, iy) -> Tuple[int,int]:
+        return (
+            self.controls.up    in self.game.keys and (ix,iy) == (0,+1) or
+            self.controls.left  in self.game.keys and (ix,iy) == (-1,0) or
+            self.controls.down  in self.game.keys and (ix,iy) == (0,-1) or
+            self.controls.right in self.game.keys and (ix,iy) == (+1,0)
+        )
     
     def center_on(self, x, y) -> None:
        if self.id == 0: self.game.center_on(x, y, 0.1)
