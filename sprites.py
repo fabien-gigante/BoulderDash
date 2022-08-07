@@ -264,6 +264,9 @@ class Firefly(Character):
 
     def can_be_occupied(self, by: Sprite) -> bool: 
         return isinstance(by, Ore) or isinstance(by, Miner)
+    
+    def on_moved(self, into: Optional[Sprite]) -> None:
+        if isinstance(into, Amoeba): self.game.cave.replace(self, None)
 
     def try_wander(self) -> bool:
         (ix,iy) = self.dir
@@ -277,6 +280,8 @@ class Firefly(Character):
             if isinstance(self.neighbor(*look), Miner) and self.try_dir(*look): return
         # else wander around
         self.try_wander()
+
+    def on_destroy(self) -> None: self.game.cave.explode(self.x, self.y)
 
 class Butterfly(Firefly):
     def __init__(self, game: Game, x: int, y: int) -> None:
@@ -330,6 +335,8 @@ class Amoeba(Sprite):
                     (ix,iy) = look ; (x,y) = (self.x+ix, self.y+iy)
                     self.game.cave.tiles[y][x] = Amoeba(self.game,x,y)
         self.try_wait()
+
+    def can_be_occupied(self, by: 'Sprite') -> bool: return isinstance(by, Firefly)
 
     @staticmethod
     def on_update_cave(cave: Cave) -> bool:

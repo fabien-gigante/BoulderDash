@@ -141,7 +141,7 @@ class Cave:
             for j in range(y-1, y+2):
                 if self.within_bounds(i, j):
                     tile = self.tiles[j][i]
-                    if tile is None or tile.can_break():
+                    if tile is None or (not isinstance(tile,type) and tile.can_break()):
                         self.tiles[j][i] = type(self.game, i, j);
                         if not tile is None: tile.on_destroy()
 
