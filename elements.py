@@ -204,10 +204,7 @@ class Firefly(Character):
         elif self.try_move(-ix, -iy): self.dir = (-ix, -iy)
 
 class Butterfly(Firefly):
-    def __init__(self, game: Game, x: int, y: int) -> None:
-        super().__init__(game, x, y)
-        self.game.cave.to_kill += 1
+    def __init__(self, game: Game, x: int, y: int) -> None: super().__init__(game, x, y)
 
     def on_destroy(self) -> None: 
         self.game.cave.explode(self.x, self.y, Diamond)
-        self.game.cave.to_kill -= 1
