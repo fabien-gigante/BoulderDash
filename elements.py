@@ -90,19 +90,19 @@ class MetalWall(Wall):
 class ExpandingWall(Wall):
     def __init__(self, game: Game, x: int, y: int) -> None:
         super().__init__(game, x, y)
-        self.enable = False
+        self.enabled = False
 
     def tick(self) -> None:
-        if self.enable:
-            #Expand to the left
-            if self.game.cave.tiles[self.y][self.x-1] == None:
+        if self.enabled:
+            # Expand to the left
+            if self.neighbor(-1,0) is None:
                 self.game.cave.tiles[self.y][self.x-1] = ExpandingWall(self.game, self.x-1, self.y)
                 Boulder.sound_fall.play()
-            #Expand to the right
-            if self.game.cave.tiles[self.y][self.x+1] == None:
+            # Expand to the right
+            if self.neighbor(+1,0) is None:
                 self.game.cave.tiles[self.y][self.x+1] = ExpandingWall(self.game, self.x+1, self.y)
                 Boulder.sound_fall.play()
-        else: self.enable = True
+        else: self.enabled = True
 
 class Ore(Element):
     def __init__(self, game: Game, x: int, y: int, n:int = 1) -> None: 
