@@ -62,7 +62,7 @@ class Cave:
                 self.tiles[i].append(tile)
     
     def next_level(self, level : Optional[int] = None) -> None:
-        self.level = min(CAVE_MAPS.__len__(), max(1, self.level + 1 if level is None else level))
+        self.level = max(1, self.level % CAVE_MAPS.__len__() + 1 if level is None else level)
         self.load()
 
     def restart_level(self) -> None: self.next_level(self.level)
@@ -155,7 +155,7 @@ class Game(arcade.Window):
     def __init__(self):
         super().__init__(Game.WIDTH, Game.HEIGHT, Game.TITLE)
         self.set_icon(pyglet.image.load(f'Tiles/Miner{Element.TILE_SIZE}-0.png'))
-        self.players = [ Player(self) ]
+        self.players = [ Player(self), Player(self, 1)  ]
         self.keys = []
         self.camera = None
         self.camera_gui = None
@@ -212,8 +212,8 @@ class Game(arcade.Window):
         self.keys.append(key)
         if key == arcade.key.NUM_ADD : self.cave.next_level()
         elif key == arcade.key.NUM_SUBTRACT : self.cave.next_level(self.cave.level - 1)
-        elif key == arcade.key.NUM_MULTIPLY : self.players = [ Player(self) ] ; self.cave.restart_level()
-        elif key == arcade.key.NUM_DIVIDE : self.players = [ Player(self) ] ; self.cave.next_level(1)
+        elif key == arcade.key.NUM_MULTIPLY : self.players = [ Player(self), Player(self, 1)  ] ; self.cave.restart_level()
+        elif key == arcade.key.NUM_DIVIDE : self.players = [ Player(self), Player(self, 1)  ] ; self.cave.next_level(1)
         elif key == arcade.key.ENTER and modifiers & arcade.key.MOD_ALT : self.set_fullscreen(not self.fullscreen)
 
     def on_key_release(self, key, modifiers):

@@ -81,7 +81,7 @@ class Wall(Element):
     def __init__(self, game: Game, x: int, y: int, n: int = 1) -> None: super().__init__(game, x, y, n)
 
 class BrickWall(Wall):
-    def __init__(self, game: Game, x: int, y: int) -> None: super().__init__(game, x, y)
+    def __init__(self, game: Game, x: int, y: int, n: int = 1) -> None: super().__init__(game, x, y, n)
 
 class MetalWall(Wall):
     def __init__(self, game: Game, x: int, y: int) -> None: super().__init__(game, x, y)
@@ -159,12 +159,14 @@ class Entry(Element):
         self.add_skin(Exit.__name__, 1)
         self.set_skin(0)
         self.wait = 0.75 # seconds
-        self.player = self.game.players[self.game.cave.nb_players]
-        self.game.cave.nb_players += 1
+        if self.game.cave.nb_players < len(self.game.players):
+            self.player = self.game.players[self.game.cave.nb_players]
+            self.game.cave.nb_players += 1
+        else: self.player = None
         self.game.center_on(self.center_x, self.center_y)
 
     def tick(self) -> None:
-        if self.player.life > 0: 
+        if self.player is not None and self.player.life > 0: 
             Entry.sound.play()
             self.game.cave.replace(self, Miner(self.game, self.x, self.y, self.player)); 
 

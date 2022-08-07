@@ -1,3 +1,5 @@
+
+# Official maps
 CAVE_MAPS = [["WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW","W......_..d.r_.....r.r......._....r....W","W.rEr......_.........rd..r...._....._..W","W.........._..r.....r.r..r........r....W","Wr.rr.........r......r..r....r...r.....W","Wr._r........._r..r........r......r.rr.W","W..._..r........r.....r._r........r.rr.W","Wwwwwwwwwwwwwwwwwwwwwwwwwwwwwww...r..r.W","W._...r..d._..r.r..........d.rd......_.W","W..d.....r....._........rr_r..r....r...W","W...r..r.r..............r_.r..r........W","W.r.....r........rrr.......r.._.d....r.W","W.d.._..r.__.....r.rd..d....r...r..d._.W","W._r..............r_r..r........d.....rW","W........wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwW","W_r.........r...d....r.....r...r.......W","W_r........._r..r........r......r.rr..XW","W._..r........r.....r.__....d...r.rr...W","W....rd..r........r......r.rd......r...W","W..._..r._..r.rr.........r.rd......_..rW","W.d...._....._........._.r..r....r...r.W","WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW"], \
              ["WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW","W.r..r..w.r...d.w..._.r.wr......w..rr..W","W.......w......rwrr._...w_..d...w....r.W","W______________________________________W","Wd......w.r....rw.r._.._w..r..d.w..r.r.W","W.......w.r....rw.r._r..w.....r.w..._..W","Wwwwwwwwwwwwwwwwwwww_wwwwwwwwwwwwwwwwwwW","W....rr.w..r....w..._..rw....r..w.....rW","W.......w.._....w..._...w....r._w.....rW","W______________________________________W","Wr..r...w....r..w..r_...w......dwr.....W","Wr....r.w..r..r.w..._._rw.......wr...r.W","W.r.....w...r...w..._._rw.......w_r..r.W","Wwwwwwwwwwwwwwwwwwww_wwwwwwwwwwwwwwwwwwW","Wr.__f..w....r.rw..._...w.rd..r.w......W","W.....r.wr......w..d_...w_..r...w.r.rr.W","W______________________________________W","Wd.._.r.wr....r.w.r._..rw.r.r...w......W","W.....r.wr..d...w..._r..w..r....w...rr_W","W.d..._rw..r....w.Ed_r..w._.....w...rr_W","W.r...._w.._..r.w.X.r...w....r.rw...._.W","WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW"], \
              ["WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW","Wr.ww.wrr.w...rwr..r....w...r.....rw.d.W","W..Ew.d.r.w...www..w.r....r..r.r...w.wrW","W....w..rd..r....w.....r.wwr.......w.wwW","Wd.w..wrwr..r....w...r......r.rr......wW","Wr.w...w..r.ww..r.wwd.......r.rr......wW","Wrr..r....w...r......r.rr......r..dww..W","W..r.ww..r.rr...w....r.rr......w..r.w.rW","W..w...d......d.r..wwr..r.w.wr..wr..d.rW","Wr.r....w.ww..d.r..wwr..r..d.w...w..r.wW","W.r.ww.....rrwr..d.w.wr..wr...wr..d.r..W","Ww.ww......rrwr..r.w.ww...w..r.ww..r.wwW","W.w.r.r.w...wwr..r....w...r.....ww.r.wwW","W.w.r.r.w.d.w.wr..wr....r..r.rr....w...W","Ww..wrwr..r....w...d...w.rw......w.ww.dW","Ww...wwr..w.d...wr..r.r...r.wr......w..W","Ww.d....r.ww..r.wwr.......r.wr......w..W","W..r....w...r......r.rr......w..r.w...wW","Wr.ww..r.ww...w....r.rr......w..rd..r..X","Ww...r......r.rd......r...ww..wr..d.w..W","Wrr...w.....r.rd......w..r.wd.d.rw.r...W","WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW"], \
@@ -19,3 +21,34 @@ CAVE_MAPS = [["WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW","W......_..d.r_.....r.r
              ["WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW","WE..r..........r........r.....r..r.....W","W.r.rr.........r...r........r......r.r.X","W.r..r........r..r....r.r..........r.rrW","W.......r..r.....r..............rr.r..rW","W..r...r....r..r.r..............r..r..rW","W.........r.....r........rrr.......r...W","W....r....r.....r........r.rr..r....r..W","W..r...mmmmmm..mmmmmm.....r.r..r.......W","W.....rw....w..w..rrw.......r....r....rW","Wr.r...w..r.w..w....w...r....r.....r...W","W......w..r.w..w....wr..r........r.....W","W.rr...w....wr.w....w.r.....r.......r..W","W.rr...w....wrrw.r..w.....r......r.rr..W","W..r...w....w..w....w.rr.........r.rr..W","W.....rwwwwww..wwwwww............r..r..W","Wr...r....r..r.r.................r..r..W","W.............r........r.....r........rW","W..r..r._f......_f.....r._f..r..._f...rW","Wr.....r__......__.......__..r...__...rW","W......r.......................r....r..W","WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW"], \
              ["WWWWWWWWWWWWWWWWWWWW","W..E......rrr......W","W.........rrr......W","W..................W","W.........mmm......W","W......r..___......W","W.......r.___......W","W........r___......W","W.......X.mmm......W","W.........___......W","W.........___......W","WWWWWWWWWWWWWWWWWWWW"]]
 CAVE_GOALS = [12,10,24,36,6,8,8,15,10,16,75,12,6,19,14,50,30,15,12,6]
+
+'''
+# Custom  maps
+CAVE_MAPS = [["WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW","WE........da_._._a_._._a_._._ad.......XW","W..........bwbwbwbwbwbwbwbwbwb.........W","W......................................W","W.........b.b.b.b.b.b.b.b.b.b.b........W","W......................................W","W........b.b.b.b.b.b.b.b.b.b.b.b.......W","W......................................W","W.......b.b.b.b.b.b.b.b.b.b.b.b.b......W","W......................................W","W......b.b.b.b.b.b.b.b.b.b.b.b.b.b.....W","W......................................W","W.....b.b.b.b.b.b.b.b.b.b.b.b.b.b.b....W","W......................................W", "W....b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b...W","W......................................W","W...b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b..W","W......................................W","W..b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.W","W......................................W","WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW"]]
+CAVE_GOALS = [30]
+'''
+
+'''
+["WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW",
+ "W......................................W",
+ "W......................................W",
+ "W......................................W",
+ "W......................................W",
+ "W......................................W",
+ "W......................................W",
+ "W......................................W",
+ "W......................................W",
+ "W......................................W",
+ "W......................................W",
+ "W......................................W",
+ "W......................................W",
+ "W......................................W",
+ "W......................................W",
+ "W......................................W",
+ "W......................................W",
+ "W......................................W",
+ "W......................................W",
+ "W......................................W",
+ "W......................................W",
+ "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW"]
+'''
