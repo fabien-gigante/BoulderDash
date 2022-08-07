@@ -1,4 +1,5 @@
 import arcade
+import pyglet
 import random
 from typing import Optional, Union
 from boulder_dash import Game, Cave, Player
@@ -81,7 +82,7 @@ class Wall(Element):
     def __init__(self, game: Game, x: int, y: int, n: int = 1) -> None: super().__init__(game, x, y, n)
 
 class BrickWall(Wall):
-    def __init__(self, game: Game, x: int, y: int) -> None: super().__init__(game, x, y)
+    def __init__(self, game: Game, x: int, y: int, n: int = 1) -> None: super().__init__(game, x, y, n)
 
 class MetalWall(Wall):
     def __init__(self, game: Game, x: int, y: int) -> None: super().__init__(game, x, y)

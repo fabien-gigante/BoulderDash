@@ -1,19 +1,18 @@
 import arcade
-import pyglet
 from typing import Optional, Union, Tuple, Generator
 from elements import *
 from caves import *
 from collections import namedtuple
 
 class Player:
-    Controls = namedtuple('Controls', 'up left down right')
+    ControlKeys = namedtuple('ControlKeys', 'up left down right')
 
     def __init__(self, game: 'Game', id: int = 0) -> None:
         self.game = game ; self.id = id; self.score = 0 ; self.life = 3
         self.controls = \
-            Player.Controls(arcade.key.UP, arcade.key.LEFT, arcade.key.DOWN, arcade.key.RIGHT) if id == 0 else \
-            Player.Controls(arcade.key.Z, arcade.key.Q, arcade.key.S, arcade.key.D) if id == 1 else \
-            Player.Controls(arcade.key.I, arcade.key.J, arcade.key.K, arcade.key.L)
+            Player.ControlKeys(arcade.key.UP, arcade.key.LEFT, arcade.key.DOWN, arcade.key.RIGHT) if id == 0 else \
+            Player.ControlKeys(arcade.key.Z, arcade.key.Q, arcade.key.S, arcade.key.D) if id == 1 else \
+            Player.ControlKeys(arcade.key.I, arcade.key.J, arcade.key.K, arcade.key.L)
     
     def is_direction(self, ix, iy) -> Tuple[int,int]:
         return (
@@ -76,12 +75,10 @@ class Cave:
             count += 1
             if not amoeba.trapped: trapped = False
         if trapped and count > 0:
-            for amoeba in self.elements(Amoeba):
-                self.replace(amoeba, Diamond(self.game, amoeba.x, amoeba.y))
+            self.replace_all(Amoeba, Diamond)
             Diamond.sound_explosion.play()
         elif count >= 200:
-            for amoeba in self.elements(Amoeba):
-                self.replace(amoeba, Boulder(self.game, amoeba.x, amoeba.y))
+            self.replace_all(Amoeba, Boulder)
             Boulder.sound_fall.play()
 
     def set_status(self, status) -> None:
@@ -94,17 +91,20 @@ class Cave:
     def at(self, x: int , y: int) -> Optional['Element']:
         return self.tiles[y][x] if self.within_bounds(x,y) else None
 
-    def replace(self, e1 : 'Element', e2 : Optional['Element']) -> None:
-        if self.at(e1.x, e1.y) == e1: # still there ?
-          self.tiles[e1.y][e1.x] = e2
-          e1.on_destroy();
+    def replace(self, elem : 'Element', by : Union['Element', type, None]) -> None:
+        if self.at(elem.x, elem.y) is elem: # still there ?
+          self.tiles[elem.y][elem.x] = by(self.game, elem.x, elem.y) if isinstance(by, type) else by
+          elem.on_destroy();
 
-    def can_move(self, element: 'Element', x: int , y: int ) -> bool:
+    def replace_all(self, cond: Optional[Union[int,type]], by: Union['Element', type, None]) -> None:
+        for elem in self.elements(cond): self.replace(elem, by)
+
+    def can_move(self, element: 'Element', x: int , y: int) -> bool:
         if not self.within_bounds(x,y): return False
         tile = self.at(x,y)
         return tile is None or tile.can_be_penetrated(element)
 
-    def try_move(self, element: 'Element', x: int , y: int ) -> bool:
+    def try_move(self, element: 'Element', x: int , y: int) -> bool:
         if not self.can_move(element, x, y): return False
         tile = self.at(x,y)
         self.tiles[element.y][element.x] = None
@@ -155,12 +155,14 @@ class Game(arcade.Window):
     def __init__(self):
         super().__init__(Game.WIDTH, Game.HEIGHT, Game.TITLE)
         self.set_icon(pyglet.image.load(f'Tiles/Miner{Element.TILE_SIZE}-0.png'))
-        self.players = [ Player(self) ]
         self.keys = []
         self.camera = None
         self.camera_gui = None
         self.cave = None
         self.center = None
+        self.reset()
+
+    def reset(self) -> None : self.players = [ Player(self) ]
 
     def setup(self) -> None:
         arcade.set_background_color(arcade.color.BLACK)
@@ -212,9 +214,12 @@ class Game(arcade.Window):
         self.keys.append(key)
         if key == arcade.key.NUM_ADD : self.cave.next_level()
         elif key == arcade.key.NUM_SUBTRACT : self.cave.next_level(self.cave.level - 1)
-        elif key == arcade.key.NUM_MULTIPLY : self.players = [ Player(self) ] ; self.cave.restart_level()
-        elif key == arcade.key.NUM_DIVIDE : self.players = [ Player(self) ] ; self.cave.next_level(1)
-        elif key == arcade.key.ENTER and modifiers & arcade.key.MOD_ALT : self.set_fullscreen(not self.fullscreen)
+        elif key == arcade.key.NUM_MULTIPLY : self.reset() ; self.cave.restart_level()
+        elif key == arcade.key.NUM_DIVIDE : self.reset() ; self.cave.next_level(1)
+        elif (
+            (key == arcade.key.ENTER and modifiers & arcade.key.MOD_ALT) or
+            (key == arcade.key.ESCAPE and self.fullscreen) or key == arcade.key.F11
+        ): self.set_fullscreen(not self.fullscreen)
 
     def on_key_release(self, key, modifiers):
        if key in self.keys: self.keys.remove(key)
