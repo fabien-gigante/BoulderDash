@@ -68,14 +68,21 @@ class Cave:
     def restart_level(self) -> None: self.next_level(self.level)
 
     def is_complete(self) -> bool:
+        s = False
         if self.are_amoebas_trapped():
             for i in range(len(self.tiles)):
                 for j in range(len(self.tiles[i])):
-                    if isinstance(self.tiles[i][j], Amoeba): self.tiles[i][j] = Diamond(self.game, j, i)
+                    if isinstance(self.tiles[i][j], Amoeba):
+                        self.tiles[i][j] = Diamond(self.game, j, i)
+                        s = True
+            if s:
+               Diamond.sound_explosion.play()
         if self.are_amoebas_200():
             for i in range(len(self.tiles)):
                 for j in range(len(self.tiles[i])):
-                    if isinstance(self.tiles[i][j], Amoeba): self.tiles[i][j] = Boulder(self.game, j, i)
+                    if isinstance(self.tiles[i][j], Amoeba):
+                        self.tiles[i][j] = Boulder(self.game, j, i)
+            Boulder.sound_fall.play()
         return self.collected >= self.to_collect
 
     def are_amoebas_trapped(self) -> bool: 
