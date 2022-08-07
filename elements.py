@@ -173,6 +173,10 @@ class Character(Element):
        super().__init__(game, x, y, n)
        self.dir = (0, 0)
 
+    def try_dir(self, ix: int, iy: int) -> bool:
+        if self.try_move(ix, iy): self.dir = (ix, iy) ; return True
+        else: return False
+
     def can_be_penetrated(self, by: Element) -> bool: return (isinstance(by, Ore) and by.moving)
     def on_destroy(self) -> None: self.game.cave.explode(self.x, self.y)
 
@@ -224,10 +228,6 @@ class Firefly(Character):
 
     def can_be_penetrated(self, by: Element) -> bool:
         return super().can_be_penetrated(by) or isinstance(by, Miner)
-
-    def try_dir(self, ix: int, iy: int) -> bool:
-        if self.try_move(ix, iy): self.dir = (ix, iy) ; return True
-        else: return False
 
     def try_wander(self) -> bool:
         (ix,iy) = self.dir
