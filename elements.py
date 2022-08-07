@@ -78,7 +78,7 @@ class Soil(Element):
     def collect(self) -> int : Soil.sound.play() ; return 0
 
 class Wall(Element):
-    def __init__(self, game: Game, x: int, y: int) -> None: super().__init__(game, x, y)
+    def __init__(self, game: Game, x: int, y: int, n: int = 1) -> None: super().__init__(game, x, y, n)
 
 class BrickWall(Wall):
     def __init__(self, game: Game, x: int, y: int) -> None: super().__init__(game, x, y)
@@ -89,14 +89,18 @@ class MetalWall(Wall):
 
 class ExpandingWall(Wall):
     def __init__(self, game: Game, x: int, y: int) -> None:
-        super().__init__(game, x, y)
-        self.wait = 1 / Element.DEFAULT_SPEED
+        super().__init__(game, x, y, 2)
+        self.add_skin(ExpandingWall.__name__, 1, True)
+        self.wait = 2 / Element.DEFAULT_SPEED
 
     def tick(self) -> None:
+        self.set_skin(0)
         for ix in [-1,+1]:
             if self.neighbor(ix, 0) is None:
-                self.game.cave.tiles[self.y][self.x+ix] = ExpandingWall(self.game, self.x+ix, self.y)
-                self.wait = 1 / Element.DEFAULT_SPEED
+                tile = ExpandingWall(self.game, self.x+ix, self.y)
+                tile.set_skin(2 if ix == -1 else 1)
+                self.game.cave.tiles[self.y][self.x+ix] = tile
+                self.wait = 2 / Element.DEFAULT_SPEED
                 Boulder.sound_fall.play()
 
 class Ore(Element):
@@ -192,7 +196,9 @@ class Character(Element):
         if self.try_move(ix, iy): self.dir = (ix, iy) ; return True
         else: return False
 
-    def can_be_penetrated(self, by: Element) -> bool: return (isinstance(by, Ore) and by.moving)
+    def can_be_penetrated(self, by: Element) -> bool: 
+        return isinstance(by, Ore) and by.moving
+
     def on_destroy(self) -> None: self.game.cave.explode(self.x, self.y)
 
 class Miner(Character):
@@ -277,7 +283,8 @@ class Butterfly(Firefly):
 
     def on_destroy(self) -> None: self.game.cave.explode(self.x, self.y, Diamond)
 
-class MagicWall(Element): # doesn't inherit from wall, to prevent ore from rolling
+class MagicWall(Wall): 
+    # TODO ? don't inherit from wall, to prevent Ore from rolling ? (I don't like this rule)
     def __init__(self, game: Game, x: int, y: int) -> None:
        super().__init__(game, x, y, 3)
        self.add_skin(BrickWall.__name__, 0)
@@ -285,7 +292,17 @@ class MagicWall(Element): # doesn't inherit from wall, to prevent ore from rolli
     def tick(self) -> None:
         if random.randint(0, 6) == 0: self.set_skin(random.randint(0, self.nb_skins - 1))
         super().tick()
-    # TODO
+
+    def can_be_penetrated(self, by: 'Element') -> bool:
+        return isinstance(by, Ore) and by.moving
+
+    def on_destroy(self) -> None:
+        # won't be destroyed by falling ore, do its magic instead !
+        ore = self.game.cave.at(self.x, self.y)
+        if isinstance(ore, Ore): 
+            ore = Boulder(self.game, self.x, self.y) if isinstance(ore, Diamond) else Diamond(self.game, self.x, self.y)
+            ore.tick() # continue its fall through...
+            self.game.cave.tiles[self.y][self.x] = self
 
 class Amoeba(Element):
     def __init__(self, game: Game, x: int, y: int) -> None:
