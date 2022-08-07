@@ -2,7 +2,6 @@ import arcade
 import random
 from typing import Optional
 from boulder_dash import Game, Cave, Player
-from collections import namedtuple
 
 class Element(arcade.Sprite):
     TILE_SIZE = 16 # 64
@@ -21,7 +20,7 @@ class Element(arcade.Sprite):
         self.compute_pos()
 
     def add_skin(self, name: str, id: int) -> None: 
-        self.append_texture(arcade.load_texture('Tiles/' + name + str(Element.TILE_SIZE) + '-' + str(id) + '.png'))
+        self.append_texture(arcade.load_texture(f'Tiles/{name}{Element.TILE_SIZE}-{id}.png'))
         self.nb_skins += 1
     def set_skin(self, i: int) -> None: self.skin = i; self.set_texture(i)
     def next_skin(self) -> None: self.set_skin( (self.skin+1) % self.nb_skins )
@@ -62,6 +61,7 @@ class Unknown(Element):
     def __init__(self, game: Game, x: int, y: int) -> None: super().__init__(game, x, y)
 
 class Soil(Element):
+    sound = arcade.load_sound(":resources:sounds/rockHit2.wav")
     def __init__(self, game: Game, x: int, y: int) -> None: super().__init__(game, x, y)
     def can_be_penetrated(self, by: Element) -> bool: return isinstance(by, Miner)
 
@@ -80,17 +80,23 @@ class Ore(Element):
 
     def tick(self) -> None:
         if self.try_move(0, -1): return
+        elif self.moving: type(self).sound_fall.play()
         ix = random.randint(0, 1) * 2 - 1;  # pick a side at random
         self.try_roll(ix) or self.try_roll(-ix)
-
+    
     def try_roll(self, ix: int) -> bool:
         below = self.neighbor(0, -1)
         return (isinstance(below, Ore) or isinstance(below, Wall)) and self.can_move(ix, -1) and self.try_move(ix, 0)
 
 class Boulder(Ore):
+    sound = arcade.load_sound(":resources:sounds/hurt1.wav")
+    sound_fall = arcade.load_sound(":resources:sounds/hurt2.wav")
     def __init__(self, game: Game, x: int, y: int) -> None: super().__init__(game, x, y)
 
 class Diamond(Ore):
+    sound = arcade.load_sound(":resources:sounds/coin5.wav")
+    sound_fall = arcade.load_sound(":resources:sounds/coin4.wav")
+    sound_explosion = arcade.load_sound(":resources:sounds/secret4.wav")
     def __init__(self, game: Game, x: int, y: int) -> None:
        super().__init__(game, x, y, 4)
 
@@ -105,6 +111,7 @@ class Diamond(Ore):
         super().tick()
 
 class Explosion(Element):
+    sound_explosion = arcade.load_sound(":resources:sounds/explosion2.wav")
     def __init__(self, game: Game, x: int, y: int) -> None:
         super().__init__(game, x, y)
         self.wait = .125 # seconds
@@ -112,6 +119,7 @@ class Explosion(Element):
     def tick(self) -> None: self.game.cave.replace(self, None)
 
 class Entry(Element):
+    sound = arcade.load_sound(":resources:sounds/jump4.wav")
     def __init__(self, game: Game, x: int, y: int) -> None:
         super().__init__(game, x, y, 0)
         self.add_skin(Exit.__name__, 1)
@@ -122,22 +130,27 @@ class Entry(Element):
         self.game.center_on(self.center_x, self.center_y)
 
     def tick(self) -> None:
-        if self.player.life > 0: self.game.cave.replace(self, Miner(self.game, self.x, self.y, self.player)); 
-        else: self.game.cave.replace(self, None)
+        if self.player.life > 0: 
+            Entry.sound.play()
+            self.game.cave.replace(self, Miner(self.game, self.x, self.y, self.player)); 
 
 class Exit(Element):
+    sound = arcade.load_sound(":resources:sounds/upgrade1.wav")
     def __init__(self, game: Game, x: int, y: int) -> None:
         super().__init__(game, x, y, 2)
         self.opened = False
 
     def tick(self) -> None:
-        if self.game.cave.is_complete() :
+        if not self.opened and self.game.cave.is_complete() :
+            Entry.sound.play()
             self.opened = True ; self.set_skin(1)
 
     def can_be_penetrated(self, by: Element) -> bool: 
         return isinstance(by, Miner) and self.opened
     
-    def on_destroy(self) -> None: self.game.cave.set_status(Cave.SUCCEEDED)
+    def on_destroy(self) -> None: 
+        Exit.sound.play()
+        self.game.cave.set_status(Cave.SUCCEEDED)
 
 class Character(Element):
     def __init__(self, game: Game, x: int, y: int, n: int = 1) -> None:
@@ -154,12 +167,17 @@ class Miner(Character):
         self.player = player
 
     def can_be_penetrated(self, by: Element) -> bool:
-        return self.game.cave.status == Cave.IN_PROGRESS and \
+        return ( 
+            self.game.cave.status == Cave.IN_PROGRESS and
             (super().can_be_penetrated(by) or isinstance(by, Firefly))
+        )
 
     def on_moved(self, into: Optional[Element]) -> None:
         if isinstance(into, Diamond):
+            Diamond.sound.play()
             self.game.cave.collected += 1 ; self.player.score += 1
+        elif isinstance(into, Soil):
+            Soil.sound.play()
         self.pushing = None
 
     def tick(self) -> None:
@@ -174,7 +192,9 @@ class Miner(Character):
             pushed = self.neighbor(*self.dir)
             if isinstance(pushed, Boulder):
                 if self.pushing == self.dir:
-                    if pushed.try_move(*self.dir): return self.try_move(*self.dir)
+                    if pushed.try_move(*self.dir): 
+                        Boulder.sound.play()
+                        return self.try_move(*self.dir)
                 else: self.pushing = self.dir; self.wait = 1 / self.speed
         return False
 
@@ -194,9 +214,11 @@ class Firefly(Character):
         self.next_skin()
         (ix,iy) = self.dir
         # if adjacent to a miner, self-destruct
-        if isinstance(self.neighbor(-1,0), Miner) or isinstance(self.neighbor(+1,0), Miner) or \
-           isinstance(self.neighbor(0,-1), Miner) or isinstance(self.neighbor(0,+1), Miner):
-              self.game.cave.replace(self, None)
+        if (
+            isinstance(self.neighbor(-1,0), Miner) or isinstance(self.neighbor(+1,0), Miner) or
+            isinstance(self.neighbor(0,-1), Miner) or isinstance(self.neighbor(0,+1), Miner)
+        ):
+            self.game.cave.replace(self, None)
         # else follow the right wall...
         elif self.try_move(iy, -ix):  self.dir = (iy, -ix)
         elif self.try_move(ix, iy):   pass # go straight
@@ -205,6 +227,4 @@ class Firefly(Character):
 
 class Butterfly(Firefly):
     def __init__(self, game: Game, x: int, y: int) -> None: super().__init__(game, x, y)
-
-    def on_destroy(self) -> None: 
-        self.game.cave.explode(self.x, self.y, Diamond)
+    def on_destroy(self) -> None: self.game.cave.explode(self.x, self.y, Diamond)

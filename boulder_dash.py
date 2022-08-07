@@ -1,4 +1,5 @@
 import arcade
+import pyglet
 from typing import Optional, Tuple
 from elements import *
 from caves import *
@@ -115,6 +116,7 @@ class Cave:
 
     def explode(self, x: int, y: int, type = None) -> None:
         if type is None: type = Explosion
+        type.sound_explosion.play()
         for i in range(x-1,x+2):
             for j in range(y-1,y+2):
                 if self.within_bounds(i, j):
@@ -134,6 +136,7 @@ class Game(arcade.Window):
 
     def __init__(self):
         super().__init__(Game.WIDTH, Game.HEIGHT, Game.TITLE)
+        self.set_icon(pyglet.image.load(f'Tiles/Miner{Element.TILE_SIZE}-0.png'))
         self.players = [ Player(self) ]
         self.keys = []
         self.camera = None
@@ -145,14 +148,14 @@ class Game(arcade.Window):
         arcade.set_background_color(arcade.color.BLACK)
         self.on_resize(self.width, self.height)
         Cave(self)
-    
+
     def on_resize(self, width: int, height: int) -> None:
         if self.camera is None or self.camera.viewport_width != width or self.camera.viewport_height != height:
             self.camera = arcade.Camera(width, height)
             self.camera_gui = arcade.Camera(width, height)
             if not self.center is None: self.center_on(*self.center)
             if width > Cave.WIDTH_MAX * Game.TILE_SIZE:
-              self.camera_gui.move_to( ((Game.WIDTH - width)/2,  Game.HEIGHT - (Cave.HEIGHT_MAX+4) * Game.TILE_SIZE ))
+                self.camera_gui.move_to( ((Game.WIDTH - width)/2,  Game.HEIGHT - (Cave.HEIGHT_MAX+4) * Game.TILE_SIZE ))
 
     def center_on(self, x, y, speed = 1) -> None:
         self.center = (x, y)
@@ -181,9 +184,9 @@ class Game(arcade.Window):
 
         self.camera_gui.use()
         arcade.draw_lrtb_rectangle_filled(0, self.width, Game.HEIGHT, Game.HEIGHT - Game.TILE_SIZE, (0,0,0,192))
-        self.print(0, 4, 'LEVEL') ; self.print(0, -4, f'{self.cave.level:02}')
-        self.print(5, 3, 'LIFE') ;  self.print(5, -3, f'{self.players[0].life:01}')
-        self.print(9, 5, 'GOAL') ;  self.print(9, -5, f'{self.cave.collected:02}/{self.cave.to_collect:02}')
+        self.print( 0, 4, 'LEVEL') ; self.print( 0, -4, f'{self.cave.level:02}')
+        self.print( 5, 3, 'LIFE')  ; self.print( 5, -3, f'{self.players[0].life:01}')
+        self.print( 9, 5, 'GOAL')  ; self.print( 9, -5, f'{self.cave.collected:02}/{self.cave.to_collect:02}')
         self.print(15, 5, 'SCORE') ; self.print(15, -5, f'{self.players[0].score:04}')
 
     def on_key_press(self, key, modifiers): 
