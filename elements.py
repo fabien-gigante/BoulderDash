@@ -1,6 +1,6 @@
 import arcade
 import random
-from typing import Optional
+from typing import Optional, Union
 from boulder_dash import Game, Cave, Player
 
 class Sound(arcade.Sound):
@@ -39,6 +39,9 @@ class Element(arcade.Sprite):
 
     def neighbor(self, ix:int, iy:int) -> Optional['Element'] :
         return self.game.cave.at(self.x + ix, self.y + iy)
+
+    def is_kind_of(self, cond: Optional[Union[int, type]]):
+        return cond is None or (isinstance(cond, type) and isinstance(self, cond)) or self.priority == cond
 
     def can_move(self, ix: int, iy: int)  -> bool:
         return self.game.cave.can_move(self, self.x + ix, self.y + iy)
