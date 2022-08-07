@@ -61,7 +61,7 @@ class Cave:
                 self.tiles[i].append(tile)
     
     def next_level(self, level : Optional[int] = None) -> None:
-        self.level = min(CAVE_MAPS.__len__(), max(1, self.level + 1 if level is None else level))
+        self.level = max(1, self.level % CAVE_MAPS.__len__() + 1 if level is None else level)
         self.load()
 
     def restart_level(self) -> None: self.next_level(self.level)
