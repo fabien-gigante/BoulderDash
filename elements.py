@@ -12,6 +12,9 @@ class Element(arcade.Sprite):
     TILE_SIZE = 16 # 64
     TILE_SCALE = Game.TILE_SIZE / TILE_SIZE
     DEFAULT_SPEED = 16 # squares per second
+    PRIORITY_HIGH = 0
+    PRIORITY_MEDIUM = 1
+    PRIORITY_LOW = 2
 
     def __init__(self, game: Game, x: int, y: int, n: int = 1) -> None:
         super().__init__(None, Element.TILE_SCALE)
@@ -21,7 +24,7 @@ class Element(arcade.Sprite):
         self.game = game
         self.x = x ; self.y = y;
         self.wait = 0 ; self.speed = Element.DEFAULT_SPEED
-        self.moved = self.moving = False
+        self.moved = self.moving = False ; self.priority = Element.PRIORITY_MEDIUM
         self.compute_pos()
 
     def add_skin(self, name: str, id: int) -> None: 
@@ -69,6 +72,7 @@ class Soil(Element):
     sound = Sound(":resources:sounds/rockHit2.wav")
     def __init__(self, game: Game, x: int, y: int) -> None: super().__init__(game, x, y)
     def can_be_penetrated(self, by: Element) -> bool: return isinstance(by, Miner)
+    def collect(self) -> int : Soil.sound.play() ; return 0
 
 class Wall(Element):
     def __init__(self, game: Game, x: int, y: int) -> None: super().__init__(game, x, y)
@@ -81,7 +85,8 @@ class MetalWall(Wall):
     def can_break(self) -> bool:  return False
 
 class Ore(Element):
-    def __init__(self, game: Game, x: int, y: int, n:int = 1) -> None: super().__init__(game, x, y, n)
+    def __init__(self, game: Game, x: int, y: int, n:int = 1) -> None: 
+        super().__init__(game, x, y, n)
 
     def tick(self) -> None:
         if self.try_move(0, -1): return
@@ -107,6 +112,11 @@ class Diamond(Ore):
 
     def can_be_penetrated(self, by: Element) -> bool: return isinstance(by, Miner)
     def can_break(self) -> bool:  return False
+
+    def collect(self) -> int: 
+        Diamond.sound.play()
+        self.game.cave.collected += 1
+        return 5 if self.game.cave.is_complete() else 2
 
     def tick(self) -> None:
         if random.randint(0,2) == 1:
@@ -152,7 +162,8 @@ class Exit(Element):
 
     def can_be_penetrated(self, by: Element) -> bool: 
         return isinstance(by, Miner) and self.opened
-    
+    def can_break(self) -> bool:  return False
+
     def on_destroy(self) -> None: 
         Exit.sound.play()
         self.game.cave.set_status(Cave.SUCCEEDED)
@@ -170,6 +181,7 @@ class Miner(Character):
         super().__init__(game, x, y)
         self.pushing = None
         self.player = player
+        self.priority = Element.PRIORITY_HIGH
 
     def can_be_penetrated(self, by: Element) -> bool:
         return ( 
@@ -178,11 +190,8 @@ class Miner(Character):
         )
 
     def on_moved(self, into: Optional[Element]) -> None:
-        if isinstance(into, Diamond):
-            Diamond.sound.play()
-            self.game.cave.collected += 1 ; self.player.score += 1
-        elif isinstance(into, Soil):
-            Soil.sound.play()
+        if isinstance(into, Diamond) or isinstance(into, Soil):
+            self.player.score += into.collect()
         self.pushing = None
 
     def tick(self) -> None:
@@ -211,24 +220,27 @@ class Firefly(Character):
     def __init__(self, game: Game, x: int, y: int) -> None:
         super().__init__(game, x, y, 2)
         self.speed /= 2 ; self.dir = (-1, 0)
+        self.priority = Element.PRIORITY_LOW
 
     def can_be_penetrated(self, by: Element) -> bool:
         return super().can_be_penetrated(by) or isinstance(by, Miner)
 
+    def try_dir(self, ix: int, iy: int) -> bool:
+        if self.try_move(ix, iy): self.dir = (ix, iy) ; return True
+        else: return False
+
+    def try_wander(self) -> bool:
+        (ix,iy) = self.dir
+        # always go right
+        return self.try_dir(iy, -ix) or self.try_dir(ix, iy) or self.try_dir(-iy, ix) or self.try_dir(-ix, -iy)
+
     def tick(self) -> None:
         self.next_skin()
-        (ix,iy) = self.dir
-        # if adjacent to a miner, self-destruct
-        if (
-            isinstance(self.neighbor(-1,0), Miner) or isinstance(self.neighbor(+1,0), Miner) or
-            isinstance(self.neighbor(0,-1), Miner) or isinstance(self.neighbor(0,+1), Miner)
-        ):
-            self.game.cave.replace(self, None)
-        # else follow the right wall...
-        elif self.try_move(iy, -ix):  self.dir = (iy, -ix)
-        elif self.try_move(ix, iy):   pass # go straight
-        elif self.try_move(-iy, ix):  self.dir = (-iy, ix)
-        elif self.try_move(-ix, -iy): self.dir = (-ix, -iy)
+        # if adjacent to a miner, try to catch him
+        for look in [(-1,0),(+1,0),(0,-1),(0,+1)]:
+            if isinstance(self.neighbor(*look), Miner) and self.try_dir(*look): return
+        # else wander around
+        self.try_wander()
 
 class Butterfly(Firefly):
     def __init__(self, game: Game, x: int, y: int) -> None: super().__init__(game, x, y)

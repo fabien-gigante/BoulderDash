@@ -1,6 +1,6 @@
 import arcade
 import pyglet
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Generator
 from elements import *
 from caves import *
 from collections import namedtuple
@@ -99,10 +99,14 @@ class Cave:
         if tile is not None and self.at(x,y) != tile: tile.on_destroy()
         return True
 
-    def draw(self) -> None:
+    def elements(self, priority: Optional[int] = None) -> Generator['Element', None, None]:
         for row in self.tiles:
             for tile in row:
-                if not tile is None: tile.draw()
+                if (tile is not None) and (priority is None or tile.priority == priority):
+                    yield tile
+
+    def draw(self) -> None:
+        for elem in self.elements(): elem.draw()
 
     def on_update(self, delta_time) -> None:
         if self.wait > 0:
@@ -110,15 +114,14 @@ class Cave:
             if self.wait <= 0:
                if self.status == Cave.SUCCEEDED: self.next_level()
                elif self.status == Cave.FAILED: self.restart_level()
-        for row in self.tiles:
-            for tile in row:
-                if not tile is None: tile.on_update(delta_time)
+        for priority in [Element.PRIORITY_HIGH, Element.PRIORITY_MEDIUM, Element.PRIORITY_LOW]:
+            for elem in self.elements(priority): elem.on_update(delta_time)
 
     def explode(self, x: int, y: int, type = None) -> None:
         if type is None: type = Explosion
         type.sound_explosion.play()
-        for i in range(x-1,x+2):
-            for j in range(y-1,y+2):
+        for i in range(x-1, x+2):
+            for j in range(y-1, y+2):
                 if self.within_bounds(i, j):
                     tile = self.tiles[j][i]
                     if tile is None or tile.can_break():
