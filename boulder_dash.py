@@ -47,7 +47,7 @@ class Cave:
 
     def load(self) -> None:
         types = { 'w': BrickWall, 'W': MetalWall, '.': Soil, 'r': Boulder, 'd': Diamond, 'E': Entry, 'X': Exit, \
-                  'f': Firefly, 'b': Butterfly, '_': None } # TODO : m=magic wall, a=amoeba
+                  'f': Firefly, 'b': Butterfly, 'm': MagicWall, 'a': Amoeba, '_': None } # TODO : a=amoeba
         self.nb_players = 0 ; self.to_collect = 0 ; self.collected = 0
         self.tiles = [] ; self.status = Cave.IN_PROGRESS ; self.wait = 0
         self.height = CAVE_MAPS[self.level - 1].__len__()
@@ -157,6 +157,7 @@ class Game(arcade.Window):
             self.camera = arcade.Camera(width, height)
             self.camera_gui = arcade.Camera(width, height)
             if not self.center is None: self.center_on(*self.center)
+            # TO FIX: formula below wrong for various values of Game.TILE_SIZE
             if width > Cave.WIDTH_MAX * Game.TILE_SIZE:
                 self.camera_gui.move_to( ((Game.WIDTH - width)/2,  Game.HEIGHT - (Cave.HEIGHT_MAX+4) * Game.TILE_SIZE ))
 

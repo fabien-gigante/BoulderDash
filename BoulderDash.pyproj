@@ -30,6 +30,7 @@
       <Publish>True</Publish>
     </Content>
     <Content Include="README.md" />
+    <Content Include="Tiles\Amoeba16-0.png" />
     <Content Include="Tiles\Boulder16-0.png" />
     <Content Include="Tiles\Boulder64-0.png" />
     <Content Include="Tiles\BrickWall16-0.png" />
@@ -55,6 +56,8 @@
     <Content Include="Tiles\Exit64-0.png" />
     <Content Include="Tiles\Explosion64-0.png" />
     <Content Include="Tiles\Firefly64-1.png" />
+    <Content Include="Tiles\MagicWall16-0.png" />
+    <Content Include="Tiles\MagicWall16-1.png" />
     <Content Include="Tiles\MetalWall16-0.png" />
     <Content Include="Tiles\MetalWall64-0.png" />
     <Content Include="Tiles\Miner16-0.png" />

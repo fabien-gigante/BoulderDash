@@ -27,8 +27,8 @@ class Element(arcade.Sprite):
         self.moved = self.moving = False ; self.priority = Element.PRIORITY_MEDIUM
         self.compute_pos()
 
-    def add_skin(self, name: str, id: int) -> None: 
-        self.append_texture(arcade.load_texture(f'Tiles/{name}{Element.TILE_SIZE}-{id}.png'))
+    def add_skin(self, name: str, id: int, flip_h: bool = False, flip_v: bool = False) -> None: 
+        self.append_texture(arcade.load_texture(f'Tiles/{name}{Element.TILE_SIZE}-{id}.png', 0,0, Element.TILE_SIZE, Element.TILE_SIZE, flip_h, flip_v))
         self.nb_skins += 1
     def set_skin(self, i: int) -> None: self.skin = i; self.set_texture(i)
     def next_skin(self) -> None: self.set_skin( (self.skin+1) % self.nb_skins )
@@ -264,3 +264,25 @@ class Butterfly(Firefly):
         return self.try_dir(iy, -ix) or self.try_dir(ix, iy) or self.try_dir(-iy, ix) or self.try_dir(-ix, -iy)
 
     def on_destroy(self) -> None: self.game.cave.explode(self.x, self.y, Diamond)
+
+class MagicWall(Element): # doesn't inherit from wall, to prevent ore from rolling
+    def __init__(self, game: Game, x: int, y: int) -> None:
+       super().__init__(game, x, y, 3)
+       self.add_skin(BrickWall.__name__, 0)
+
+    def tick(self) -> None:
+        if random.randint(0, 6) == 0: self.set_skin(random.randint(0, self.nb_skins - 1))
+        super().tick()
+    # TODO
+
+class Amoeba(Element):
+    def __init__(self, game: Game, x: int, y: int) -> None:
+        super().__init__(game, x, y)
+        self.add_skin(Amoeba.__name__, 0, True, False) ; self.add_skin(Amoeba.__name__, 0, False, True) ; self.add_skin(Amoeba.__name__, 0, True, True) 
+        self.set_skin(random.randint(0, self.nb_skins - 1))
+
+    def tick(self) -> None:
+        if random.randint(0, 6) == 0: self.set_skin(random.randint(0, self.nb_skins - 1))
+        super().tick()
+
+    # TODO
