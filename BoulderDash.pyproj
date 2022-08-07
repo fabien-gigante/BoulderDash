@@ -30,6 +30,7 @@
       <Publish>True</Publish>
     </Content>
     <Content Include="README.md" />
+    <Content Include="screenshot.png" />
     <Content Include="Tiles\Amoeba16-0.png" />
     <Content Include="Tiles\Boulder16-0.png" />
     <Content Include="Tiles\Boulder64-0.png" />

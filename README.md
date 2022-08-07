@@ -7,6 +7,8 @@ Prototype de clone de Boulder Dash
 Site officiel : https://boulder-dash.com/  
 Règles originales complètes : https://www.elmerproductions.com/sp/peterb/
 
+![Capture d'écran](screenshot.png)
+
 ## Le code
 
 Bibliothèque Arcade : https://api.arcade.academy/en/latest/  
