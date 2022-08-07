@@ -290,11 +290,19 @@ class MagicWall(Element): # doesn't inherit from wall, to prevent ore from rolli
 class Amoeba(Element):
     def __init__(self, game: Game, x: int, y: int) -> None:
         super().__init__(game, x, y)
+        self.DEFAULT_SPEED = 2
         self.add_skin(Amoeba.__name__, 0, True, False) ; self.add_skin(Amoeba.__name__, 0, False, True) ; self.add_skin(Amoeba.__name__, 0, True, True) 
         self.set_skin(random.randint(0, self.nb_skins - 1))
+        self.wait = 1 / self.DEFAULT_SPEED
 
     def tick(self) -> None:
-        if random.randint(0, 6) == 0: self.set_skin(random.randint(0, self.nb_skins - 1))
-        super().tick()
+        if random.randint(0, 7) == 0: self.set_skin(random.randint(0, self.nb_skins - 1))
+        for look in [[-1,0], [+1,0], [0,-1], [0,+1]]:
+            if self.neighbor(look[0], look[1]) == None :
+                if random.randint(0, 3) == 0: self.game.cave.tiles[self.y+look[1]][self.x+look[0]] = Amoeba(self.game, self.x+look[0], self.y+look[1])
+                self.wait = 1 / self.DEFAULT_SPEED
+            elif isinstance(self.neighbor(look[0], look[1]), Soil) :
+                if random.randint(0, 31) == 0: self.game.cave.tiles[self.y+look[1]][self.x+look[0]] = Amoeba(self.game, self.x+look[0], self.y+look[1])
+                self.wait = 1 / self.DEFAULT_SPEED
 
     # TODO
