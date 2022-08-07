@@ -255,8 +255,8 @@ class Firefly(Character):
         self.speed /= 2 ; self.dir = (-1, 0)
         self.priority = Element.PRIORITY_LOW
 
-    def can_be_penetrated(self, by: Element) -> bool:
-        return super().can_be_penetrated(by) or isinstance(by, Miner)
+    def can_be_penetrated(self, by: Element) -> bool: 
+        return isinstance(by, Ore) or isinstance(by, Miner)
 
     def try_wander(self) -> bool:
         (ix,iy) = self.dir
@@ -284,7 +284,7 @@ class Butterfly(Firefly):
     def on_destroy(self) -> None: self.game.cave.explode(self.x, self.y, Diamond)
 
 class MagicWall(Wall): 
-    # TODO ? don't inherit from wall, to prevent Ore from rolling ? (I don't like this rule)
+    # With my own rules (I don't like the original ones)
     def __init__(self, game: Game, x: int, y: int) -> None:
        super().__init__(game, x, y, 3)
        self.add_skin(BrickWall.__name__, 0)
