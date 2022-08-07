@@ -78,7 +78,7 @@ class Soil(Element):
     def collect(self) -> int : Soil.sound.play() ; return 0
 
 class Wall(Element):
-    def __init__(self, game: Game, x: int, y: int) -> None: super().__init__(game, x, y)
+    def __init__(self, game: Game, x: int, y: int, n: int = 1) -> None: super().__init__(game, x, y, n)
 
 class BrickWall(Wall):
     def __init__(self, game: Game, x: int, y: int) -> None: super().__init__(game, x, y)
@@ -89,14 +89,18 @@ class MetalWall(Wall):
 
 class ExpandingWall(Wall):
     def __init__(self, game: Game, x: int, y: int) -> None:
-        super().__init__(game, x, y)
-        self.wait = 1 / Element.DEFAULT_SPEED
+        super().__init__(game, x, y, 2)
+        self.add_skin(ExpandingWall.__name__, 1, True)
+        self.wait = 2 / Element.DEFAULT_SPEED
 
     def tick(self) -> None:
+        self.set_skin(0)
         for ix in [-1,+1]:
             if self.neighbor(ix, 0) is None:
-                self.game.cave.tiles[self.y][self.x+ix] = ExpandingWall(self.game, self.x+ix, self.y)
-                self.wait = 1 / Element.DEFAULT_SPEED
+                tile = ExpandingWall(self.game, self.x+ix, self.y)
+                tile.set_skin(2 if ix == -1 else 1)
+                self.game.cave.tiles[self.y][self.x+ix] = tile
+                self.wait = 2 / Element.DEFAULT_SPEED
                 Boulder.sound_fall.play()
 
 class Ore(Element):
