@@ -9,19 +9,31 @@ class Player:
 
     def __init__(self, game: 'Game', id: int = 0) -> None:
         self.game = game ; self.id = id; self.score = 0 ; self.life = 3
-        self.controls = \
+        self.control_keys = \
             Player.ControlKeys(arcade.key.UP, arcade.key.LEFT, arcade.key.DOWN, arcade.key.RIGHT) if id == 0 else \
             Player.ControlKeys(arcade.key.Z, arcade.key.Q, arcade.key.S, arcade.key.D) if id == 1 else \
             Player.ControlKeys(arcade.key.I, arcade.key.J, arcade.key.K, arcade.key.L)
-    
-    def is_direction(self, ix, iy) -> Tuple[int,int]:
+        self.controller = game.controllers[id] if id < len(game.controllers) else None
+
+    def is_direction(self, ix, iy) -> Tuple[int,int]: 
+        return self.is_key_direction(ix, iy) or self.is_ctrl_direction(ix, iy) 
+
+    def is_key_direction(self, ix, iy) -> Tuple[int,int]:
         return (
-            self.controls.up    in self.game.keys and (ix,iy) == (0,+1) or
-            self.controls.left  in self.game.keys and (ix,iy) == (-1,0) or
-            self.controls.down  in self.game.keys and (ix,iy) == (0,-1) or
-            self.controls.right in self.game.keys and (ix,iy) == (+1,0)
+            self.control_keys.up    in self.game.keys and (ix,iy) == (0,+1) or
+            self.control_keys.left  in self.game.keys and (ix,iy) == (-1,0) or
+            self.control_keys.down  in self.game.keys and (ix,iy) == (0,-1) or
+            self.control_keys.right in self.game.keys and (ix,iy) == (+1,0)
         )
-    
+
+    def is_ctrl_direction(self, ix, iy) -> Tuple[int,int]:
+        return self.controller is not None and (
+            self.controller.y < -.5 and (ix,iy) == (0,+1) or
+            self.controller.x < -.5 and (ix,iy) == (-1,0) or
+            self.controller.y > +.5 and (ix,iy) == (0,-1) or
+            self.controller.x > +.5 and (ix,iy) == (+1,0)
+        )
+
     def center_on(self, x, y) -> None:
        if self.id == 0: self.game.center_on(x, y, 0.1)
 
@@ -49,8 +61,8 @@ class Cave:
                   'f': Firefly, 'b': Butterfly, 'm': MagicWall, 'a': Amoeba, 'e': ExpandingWall, '_': None } # TODO : a=amoeba
         self.nb_players = 0 ; self.to_collect = 0 ; self.collected = 0
         self.tiles = [] ; self.status = Cave.IN_PROGRESS ; self.wait = 0
-        self.height = CAVE_MAPS[self.level - 1].__len__()
-        self.width = CAVE_MAPS[self.level - 1][0].__len__()
+        self.height = len(CAVE_MAPS[self.level - 1])
+        self.width = len(CAVE_MAPS[self.level - 1][0])
         self.to_collect = CAVE_GOALS[self.level - 1]
         for i in range(0, self.height):
             self.tiles.append([])
@@ -61,7 +73,7 @@ class Cave:
                 self.tiles[i].append(tile)
     
     def next_level(self, level : Optional[int] = None) -> None:
-        self.level = max(1, self.level % CAVE_MAPS.__len__() + 1 if level is None else level)
+        self.level = max(1, self.level % len(CAVE_MAPS) + 1 if level is None else level)
         self.load()
 
     def restart_level(self) -> None: self.next_level(self.level)
@@ -160,13 +172,16 @@ class Game(arcade.Window):
         self.camera_gui = None
         self.cave = None
         self.center = None
-        self.reset()
+        self.players = []
 
     def reset(self) -> None : self.players = [ Player(self) ]
 
     def setup(self) -> None:
         arcade.set_background_color(arcade.color.BLACK)
+        self.controllers = arcade.get_game_controllers()
         self.on_resize(self.width, self.height)
+        for ctrl in self.controllers: ctrl.open()
+        self.reset()
         Cave(self)
 
     def on_resize(self, width: int, height: int) -> None:
