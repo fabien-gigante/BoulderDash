@@ -3,6 +3,11 @@ import random
 from typing import Optional
 from boulder_dash import Game, Cave, Player
 
+class Sound(arcade.Sound):
+    def __init__(self, file): 
+        super().__init__(file)
+        self.play().delete() # force audio preloading
+
 class Element(arcade.Sprite):
     TILE_SIZE = 16 # 64
     TILE_SCALE = Game.TILE_SIZE / TILE_SIZE
@@ -61,7 +66,7 @@ class Unknown(Element):
     def __init__(self, game: Game, x: int, y: int) -> None: super().__init__(game, x, y)
 
 class Soil(Element):
-    sound = arcade.load_sound(":resources:sounds/rockHit2.wav")
+    sound = Sound(":resources:sounds/rockHit2.wav")
     def __init__(self, game: Game, x: int, y: int) -> None: super().__init__(game, x, y)
     def can_be_penetrated(self, by: Element) -> bool: return isinstance(by, Miner)
 
@@ -89,14 +94,14 @@ class Ore(Element):
         return (isinstance(below, Ore) or isinstance(below, Wall)) and self.can_move(ix, -1) and self.try_move(ix, 0)
 
 class Boulder(Ore):
-    sound = arcade.load_sound(":resources:sounds/hurt1.wav")
-    sound_fall = arcade.load_sound(":resources:sounds/hurt2.wav")
+    sound = Sound(":resources:sounds/hurt1.wav")
+    sound_fall = Sound(":resources:sounds/hurt2.wav")
     def __init__(self, game: Game, x: int, y: int) -> None: super().__init__(game, x, y)
 
 class Diamond(Ore):
-    sound = arcade.load_sound(":resources:sounds/coin5.wav")
-    sound_fall = arcade.load_sound(":resources:sounds/coin4.wav")
-    sound_explosion = arcade.load_sound(":resources:sounds/secret4.wav")
+    sound = Sound(":resources:sounds/coin5.wav")
+    sound_fall = Sound(":resources:sounds/coin4.wav")
+    sound_explosion = Sound(":resources:sounds/secret4.wav")
     def __init__(self, game: Game, x: int, y: int) -> None:
        super().__init__(game, x, y, 4)
 
@@ -111,7 +116,7 @@ class Diamond(Ore):
         super().tick()
 
 class Explosion(Element):
-    sound_explosion = arcade.load_sound(":resources:sounds/explosion2.wav")
+    sound_explosion = Sound(":resources:sounds/explosion2.wav")
     def __init__(self, game: Game, x: int, y: int) -> None:
         super().__init__(game, x, y)
         self.wait = .125 # seconds
@@ -119,7 +124,7 @@ class Explosion(Element):
     def tick(self) -> None: self.game.cave.replace(self, None)
 
 class Entry(Element):
-    sound = arcade.load_sound(":resources:sounds/jump4.wav")
+    sound = Sound(":resources:sounds/jump4.wav")
     def __init__(self, game: Game, x: int, y: int) -> None:
         super().__init__(game, x, y, 0)
         self.add_skin(Exit.__name__, 1)
@@ -135,7 +140,7 @@ class Entry(Element):
             self.game.cave.replace(self, Miner(self.game, self.x, self.y, self.player)); 
 
 class Exit(Element):
-    sound = arcade.load_sound(":resources:sounds/upgrade1.wav")
+    sound = Sound(":resources:sounds/upgrade1.wav")
     def __init__(self, game: Game, x: int, y: int) -> None:
         super().__init__(game, x, y, 2)
         self.opened = False
