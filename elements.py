@@ -242,8 +242,8 @@ class Firefly(Character):
 
     def try_wander(self) -> bool:
         (ix,iy) = self.dir
-        # always go right
-        return self.try_dir(iy, -ix) or self.try_dir(ix, iy) or self.try_dir(-iy, ix) or self.try_dir(-ix, -iy)
+        # always go left
+        return self.try_dir(-iy, ix) or self.try_dir(ix, iy) or self.try_dir(iy, -ix) or self.try_dir(-ix, -iy)
 
     def tick(self) -> None:
         self.next_skin()
@@ -254,5 +254,13 @@ class Firefly(Character):
         self.try_wander()
 
 class Butterfly(Firefly):
-    def __init__(self, game: Game, x: int, y: int) -> None: super().__init__(game, x, y)
+    def __init__(self, game: Game, x: int, y: int) -> None:
+        super().__init__(game, x, y)
+        self.dir = (0, -1)
+
+    def try_wander(self) -> bool:
+        (ix,iy) = self.dir
+        # always go right
+        return self.try_dir(iy, -ix) or self.try_dir(ix, iy) or self.try_dir(-iy, ix) or self.try_dir(-ix, -iy)
+
     def on_destroy(self) -> None: self.game.cave.explode(self.x, self.y, Diamond)
