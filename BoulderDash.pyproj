@@ -23,7 +23,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="boulder_dash.py" />
-    <Compile Include="elements.py" />
+    <Compile Include="sprites.py" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="caves.py">

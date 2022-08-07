@@ -1,6 +1,6 @@
 import arcade
 from typing import Optional, Union, Tuple, Generator
-from elements import *
+from sprites import *
 from caves import *
 from collections import namedtuple
 
@@ -57,20 +57,22 @@ class Cave:
         self.next_level(1)
 
     def load(self) -> None:
-        types = { 'w': BrickWall, 'W': MetalWall, '.': Soil, 'r': Boulder, 'd': Diamond, 'E': Entry, 'X': Exit, \
-                  'f': Firefly, 'b': Butterfly, 'm': MagicWall, 'a': Amoeba, 'e': ExpandingWall, '_': None } # TODO : a=amoeba
+        types = {
+           'w': BrickWall, 'W': MetalWall, '.': Soil, 'r': Boulder, 'd': Diamond, 'E': Entry, 'X': Exit,
+           'f': Firefly, 'b': Butterfly, 'a': Amoeba, 'm': MagicWall, 'e': ExpandingWall, ' ': None, '_': None 
+        }
         self.nb_players = 0 ; self.to_collect = 0 ; self.collected = 0
         self.tiles = [] ; self.status = Cave.IN_PROGRESS ; self.wait = 0
         self.height = len(CAVE_MAPS[self.level - 1])
         self.width = len(CAVE_MAPS[self.level - 1][0])
         self.to_collect = CAVE_GOALS[self.level - 1]
-        for i in range(0, self.height):
+        for y in range(0, self.height):
             self.tiles.append([])
-            for j in range(0, self.width):
-                key = CAVE_MAPS[self.level - 1][self.height -1 - i][j]
+            for x in range(0, self.width):
+                key = CAVE_MAPS[self.level - 1][self.height -1 - y][x]
                 type = types[key] if key in types else Unknown
-                tile = type(self.game, j, i) if not type is None else None
-                self.tiles[i].append(tile)
+                tile = type(self.game, x, y) if not type is None else None
+                self.tiles[y].append(tile)
     
     def next_level(self, level : Optional[int] = None) -> None:
         self.level = max(1, self.level % len(CAVE_MAPS) + 1 if level is None else level)
@@ -81,18 +83,6 @@ class Cave:
     def is_complete(self) -> bool:
         return self.collected >= self.to_collect
     
-    def check_amoebas(self) -> None:
-        count = 0 ; trapped = True
-        for amoeba in self.elements(Amoeba): 
-            count += 1
-            if not amoeba.trapped: trapped = False
-        if trapped and count > 0:
-            self.replace_all(Amoeba, Diamond)
-            Diamond.sound_explosion.play()
-        elif count >= 200:
-            self.replace_all(Amoeba, Boulder)
-            Boulder.sound_fall.play()
-
     def set_status(self, status) -> None:
         self.status = status
         self.wait = 0.25 # seconds
@@ -100,39 +90,39 @@ class Cave:
     def within_bounds(self, x: int ,y: int) -> bool:
         return x >= 0 and y >= 0 and x < self.width and y < self.height
 
-    def at(self, x: int , y: int) -> Optional['Element']:
+    def at(self, x: int , y: int) -> Optional['Sprite']:
         return self.tiles[y][x] if self.within_bounds(x,y) else None
 
-    def replace(self, elem : 'Element', by : Union['Element', type, None]) -> None:
-        if self.at(elem.x, elem.y) is elem: # still there ?
-          self.tiles[elem.y][elem.x] = by(self.game, elem.x, elem.y) if isinstance(by, type) else by
-          elem.on_destroy();
+    def replace(self, sprite : 'Sprite', by : Union['Sprite', type, None]) -> None:
+        if self.at(sprite.x, sprite.y) is sprite: # still there ?
+            self.tiles[sprite.y][sprite.x] = by(self.game, sprite.x, sprite.y) if isinstance(by, type) else by
+            sprite.on_destroy()
 
-    def replace_all(self, cond: Optional[Union[int,type]], by: Union['Element', type, None]) -> None:
-        for elem in self.elements(cond): self.replace(elem, by)
+    def replace_all(self, cond: Optional[Union[int,type]], by: Union['Sprite', type, None]) -> None:
+        for sprite in self.sprites(cond): self.replace(sprite, by)
 
-    def can_move(self, element: 'Element', x: int , y: int) -> bool:
+    def can_move(self, sprite: 'Sprite', x: int , y: int) -> bool:
         if not self.within_bounds(x,y): return False
         tile = self.at(x,y)
-        return tile is None or tile.can_be_penetrated(element)
+        return tile is None or tile.can_be_occupied(sprite)
 
-    def try_move(self, element: 'Element', x: int , y: int) -> bool:
-        if not self.can_move(element, x, y): return False
+    def try_move(self, sprite: 'Sprite', x: int , y: int) -> bool:
+        if not self.can_move(sprite, x, y): return False
         tile = self.at(x,y)
-        self.tiles[element.y][element.x] = None
-        self.tiles[y][x] = element
-        element.x = x ; element.y = y
-        element.on_moved(tile)
+        self.tiles[sprite.y][sprite.x] = None
+        self.tiles[y][x] = sprite
+        (sprite.x, sprite.y) = (x,y)
+        sprite.on_moved(tile)
         if tile is not None and self.at(x,y) != tile: tile.on_destroy()
         return True
 
-    def elements(self, cond: Optional[Union[int,type]] = None) -> Generator['Element', None, None]:
+    def sprites(self, cond: Optional[Union[int,type]] = None) -> Generator['Sprite', None, None]:
         for row in self.tiles:
             for tile in row:
                 if tile is not None and tile.is_kind_of(cond): yield tile
 
     def draw(self) -> None:
-        for elem in self.elements(): elem.draw()
+        for sprite in self.sprites(): sprite.draw()
 
     def on_update(self, delta_time) -> None:
         if self.wait > 0:
@@ -140,9 +130,9 @@ class Cave:
             if self.wait <= 0:
                if self.status == Cave.SUCCEEDED: self.next_level()
                elif self.status == Cave.FAILED: self.restart_level()
-        for priority in [Element.PRIORITY_HIGH, Element.PRIORITY_MEDIUM, Element.PRIORITY_LOW]:
-            for elem in self.elements(priority): elem.on_update(delta_time)
-        self.check_amoebas()
+        for priority in [Sprite.PRIORITY_HIGH, Sprite.PRIORITY_MEDIUM, Sprite.PRIORITY_LOW]:
+            for sprite in self.sprites(priority): sprite.on_update(delta_time)
+        Amoeba.on_update_cave(self)
 
     def explode(self, x: int, y: int, type : Optional[type] = None) -> None:
         if type is None: type = Explosion
@@ -166,7 +156,7 @@ class Game(arcade.Window):
 
     def __init__(self):
         super().__init__(Game.WIDTH, Game.HEIGHT, Game.TITLE)
-        self.set_icon(pyglet.image.load(f'Tiles/Miner{Element.TILE_SIZE}-0.png'))
+        self.set_icon(pyglet.image.load(f'Tiles/Miner{Sprite.TILE_SIZE}-0.png'))
         self.keys = []
         self.camera = None
         self.camera_gui = None
@@ -207,7 +197,7 @@ class Game(arcade.Window):
             cy = y - self.height / 2
             if cy < 0 : cy = 0
             if cy > (self.cave.height + 1) * Game.TILE_SIZE - self.height : cy = (self.cave.height +1) * Game.TILE_SIZE - self.height
-        self.camera.move_to((cx, cy) , speed )
+        self.camera.move_to((cx, cy) , speed)
 
     def print(self, x: int, w: int, text: str) -> None:
         (color, align, w) = (arcade.color.GRULLO, 'left', w) if w >= 0 else (arcade.color.DARK_PASTEL_GREEN, 'right', -w)
