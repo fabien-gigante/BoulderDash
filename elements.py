@@ -283,8 +283,7 @@ class Butterfly(Firefly):
 
     def on_destroy(self) -> None: self.game.cave.explode(self.x, self.y, Diamond)
 
-class MagicWall(Wall): 
-    # With my own rules (I don't like the original ones)
+class MagicWall(BrickWall): 
     def __init__(self, game: Game, x: int, y: int) -> None:
        super().__init__(game, x, y, 3)
        self.add_skin(BrickWall.__name__, 0)
@@ -307,22 +306,20 @@ class MagicWall(Wall):
 class Amoeba(Element):
     def __init__(self, game: Game, x: int, y: int) -> None:
         super().__init__(game, x, y)
-        self.DEFAULT_SPEED = 2
         self.add_skin(Amoeba.__name__, 0, True, False) ; self.add_skin(Amoeba.__name__, 0, False, True) ; self.add_skin(Amoeba.__name__, 0, True, True) 
         self.set_skin(random.randint(0, self.nb_skins - 1))
-        self.wait = 1 / self.DEFAULT_SPEED
+        self.wait = 1 / self.speed
         self.trapped = False
 
     def tick(self) -> None:
-        if random.randint(0, 7) == 0: self.set_skin(random.randint(0, self.nb_skins - 1))
+        if random.randint(0, 4) == 0: self.set_skin(random.randint(0, self.nb_skins - 1))
         self.trapped = True
-        for look in [[-1,0], [+1,0], [0,-1], [0,+1]]:
-            if self.neighbor(look[0], look[1]) == None :
+        for look in [(-1,0),(+1,0),(0,-1),(0,+1)]:
+            neighbor = self.neighbor(*look)
+            if neighbor is None or isinstance(neighbor, Soil):
                 self.trapped = False
-                if random.randint(0, 3) == 0:
-                    self.game.cave.tiles[self.y+look[1]][self.x+look[0]] = Amoeba(self.game, self.x+look[0], self.y+look[1])
-            elif isinstance(self.neighbor(look[0], look[1]), Soil) :
-                self.trapped = False
-                if random.randint(0, 31) == 0:
-                    self.game.cave.tiles[self.y+look[1]][self.x+look[0]] = Amoeba(self.game, self.x+look[0], self.y+look[1])
-        self.wait = 1 / self.DEFAULT_SPEED
+                proba = 20 if neighbor is None else 80
+                if random.randint(0, proba) == 0:
+                    (ix,iy) = look ; (x,y) = (self.x+ix, self.y+iy)
+                    self.game.cave.tiles[y][x] = Amoeba(self.game,x,y)
+        self.wait = 1 / self.speed

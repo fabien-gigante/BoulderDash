@@ -68,36 +68,21 @@ class Cave:
     def restart_level(self) -> None: self.next_level(self.level)
 
     def is_complete(self) -> bool:
-        s = False
-        if self.are_amoebas_trapped():
-            for i in range(len(self.tiles)):
-                for j in range(len(self.tiles[i])):
-                    if isinstance(self.tiles[i][j], Amoeba):
-                        self.tiles[i][j] = Diamond(self.game, j, i)
-                        s = True
-            if s:
-               Diamond.sound_explosion.play()
-        if self.are_amoebas_200():
-            for i in range(len(self.tiles)):
-                for j in range(len(self.tiles[i])):
-                    if isinstance(self.tiles[i][j], Amoeba):
-                        self.tiles[i][j] = Boulder(self.game, j, i)
-            Boulder.sound_fall.play()
         return self.collected >= self.to_collect
-
-    def are_amoebas_trapped(self) -> bool: 
-        for i in self.tiles:
-            for tile in i:
-                if isinstance(tile, Amoeba):
-                    if not(tile.trapped) : return False
-        return True
-
-    def are_amoebas_200(self) -> bool: 
-        n = 0
-        for i in self.tiles:
-            for tile in i:
-                if isinstance(tile, Amoeba): n+=1
-        return 200 <= n
+    
+    def check_amoebas(self) -> None:
+        count = 0 ; trapped = True
+        for amoeba in self.elements(Amoeba): 
+            count += 1
+            if not amoeba.trapped: trapped = False
+        if trapped and count > 0:
+            for amoeba in self.elements(Amoeba):
+                self.replace(amoeba, Diamond(self.game, amoeba.x, amoeba.y))
+            Diamond.sound_explosion.play()
+        elif count >= 200:
+            for amoeba in self.elements(Amoeba):
+                self.replace(amoeba, Boulder(self.game, amoeba.x, amoeba.y))
+            Boulder.sound_fall.play()
 
     def set_status(self, status) -> None:
         self.status = status
@@ -145,6 +130,7 @@ class Cave:
                elif self.status == Cave.FAILED: self.restart_level()
         for priority in [Element.PRIORITY_HIGH, Element.PRIORITY_MEDIUM, Element.PRIORITY_LOW]:
             for elem in self.elements(priority): elem.on_update(delta_time)
+        self.check_amoebas()
 
     def explode(self, x: int, y: int, type : Optional[type] = None) -> None:
         if type is None: type = Explosion
