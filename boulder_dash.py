@@ -63,19 +63,20 @@ class Cave:
         }
         self.nb_players = 0 ; self.to_collect = 0 ; self.collected = 0
         self.tiles = [] ; self.status = Cave.IN_PROGRESS ; self.wait = 0
-        self.height = len(CAVE_MAPS[self.level - 1])
-        self.width = len(CAVE_MAPS[self.level - 1][0])
-        self.to_collect = CAVE_GOALS[self.level - 1]
+        cave = CAVES[self.level - 1]
+        self.height = len(cave['map'])
+        self.width = len(cave['map'][0])
+        self.to_collect = cave['goal']
         for y in range(0, self.height):
             self.tiles.append([])
             for x in range(0, self.width):
-                key = CAVE_MAPS[self.level - 1][self.height -1 - y][x]
+                key = cave['map'][self.height -1 - y][x]
                 type = types[key] if key in types else Unknown
-                tile = type(self.game, x, y) if not type is None else None
+                tile = type(self, x, y) if not type is None else None
                 self.tiles[y].append(tile)
     
     def next_level(self, level : Optional[int] = None) -> None:
-        self.level = max(1, self.level % len(CAVE_MAPS) + 1 if level is None else level)
+        self.level = max(1, self.level % len(CAVES) + 1 if level is None else level)
         self.load()
 
     def restart_level(self) -> None: self.next_level(self.level)
@@ -95,7 +96,7 @@ class Cave:
 
     def replace(self, sprite : 'Sprite', by : Union['Sprite', type, None]) -> None:
         if self.at(sprite.x, sprite.y) is sprite: # still there ?
-            self.tiles[sprite.y][sprite.x] = by(self.game, sprite.x, sprite.y) if isinstance(by, type) else by
+            self.tiles[sprite.y][sprite.x] = by(self, sprite.x, sprite.y) if isinstance(by, type) else by
             sprite.on_destroy()
 
     def replace_all(self, cond: Optional[Union[int,type]], by: Union['Sprite', type, None]) -> None:
@@ -142,7 +143,7 @@ class Cave:
                 if self.within_bounds(i, j):
                     tile = self.tiles[j][i]
                     if tile is None or (not isinstance(tile,type) and tile.can_break()):
-                        self.tiles[j][i] = type(self.game, i, j);
+                        self.tiles[j][i] = type(self, i, j);
                         if not tile is None: tile.on_destroy()
 
 class Game(arcade.Window):
