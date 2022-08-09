@@ -20,10 +20,9 @@ class Sound(arcade.Sound):
     def on_ended(self) -> None:
         if self.player is not None: self.player.delete()
         self.player = None
-        
 
 class Sprite(arcade.Sprite):
-    TILE_SIZE = 64 # from 16, 64
+    TILE_SIZE = 16 # from 16, 64
     TILE_SCALE = Game.TILE_SIZE / TILE_SIZE
     DEFAULT_SPEED = 15 # squares per second
     PRIORITY_HIGH = 0
@@ -120,24 +119,44 @@ class ExpandingWall(Wall):
                 self.wait = 2 / Sprite.DEFAULT_SPEED
                 Boulder.sound_fall.play()
 
-class Ore(Sprite):
+class Pushable(Sprite):
+    sound = Sound(":resources:sounds/hurt1.wav")
     def __init__(self, cave: Cave, x: int, y: int, n:int = 1) -> None: 
         super().__init__(cave, x, y, n)
 
+class Ore(Pushable):
+    sound_fall = Sound(":resources:sounds/hurt2.wav")
+
+    def __init__(self, cave: Cave, x: int, y: int, n:int = 1) -> None: 
+        super().__init__(cave, x, y, n)
+
+    def can_move(self, ix: int, iy: int)  -> bool: 
+        return iy <= 0 and super().can_move(ix, iy)
+    def try_move(self, ix: int, iy: int)  -> bool: 
+        return iy <= 0 and super().try_move(ix, iy)
+
     def tick(self) -> None:
         if self.try_move(0, -1): return
-        elif self.moving: type(self).sound_fall.play()
+        elif self.moving: self.on_end_fall(self.neighbor(0, -1))
         ix = random.randint(0, 1) * 2 - 1;  # pick a side at random
         self.try_roll(ix) or self.try_roll(-ix)
+    
+    def on_end_fall(self, onto: Sprite) -> None:
+        type(self).sound_fall.play()
+        if isinstance(onto, CrackedBoulder): onto.on_end_fall(None)
     
     def try_roll(self, ix: int) -> bool:
         below = self.neighbor(0, -1)
         return (isinstance(below, Ore) or isinstance(below, BrickWall)) and self.can_move(ix, -1) and self.try_move(ix, 0)
 
 class Boulder(Ore):
-    sound = Sound(":resources:sounds/hurt1.wav")
-    sound_fall = Sound(":resources:sounds/hurt2.wav")
     def __init__(self, cave: Cave, x: int, y: int) -> None: super().__init__(cave, x, y)
+
+class CrackedBoulder(Boulder):
+    def __init__(self, cave: Cave, x: int, y: int) -> None: super().__init__(cave, x, y)
+    def on_end_fall(self, onto: Sprite) -> None:
+        super().on_end_fall(onto)
+        self.cave.replace(self, Explosion)
 
 class Diamond(Ore):
     sound = Sound(":resources:sounds/coin5.wav")
@@ -160,6 +179,16 @@ class Diamond(Ore):
             if shine > 3: shine = 0
             self.set_skin(shine)
         super().tick()
+
+class Mineral(Boulder):
+    sound_fall = Diamond.sound_fall
+    def __init__(self, cave: Cave, x: int, y: int) -> None: super().__init__(cave, x, y)
+    def on_end_fall(self, onto: Sprite) -> None:
+        super().on_end_fall(onto)
+        self.cave.replace(self, Diamond)
+
+class Crate(Pushable):
+    def __init__(self, cave: Cave, x: int, y: int) -> None: super().__init__(cave, x, y)
 
 class Explosion(Sprite):
     sound_explosion = Sound(":resources:sounds/explosion2.wav")
@@ -250,22 +279,21 @@ class Miner(Character):
         for dir in [(-1,0),(+1,0),(0,-1),(0,+1)]:
             if self.player.is_direction(*dir):
                 if self.try_dir(*dir): return
-        for dir in [(-1,0),(+1,0)]:
+        for dir in [(-1,0),(+1,0),(0,-1),(0,+1)]:
             if self.player.is_direction(*dir):
                 if self.try_push(*dir): return
 
     def try_push(self, ix:int, iy:int) -> bool:
-        if ix != 0 and iy == 0:
-            pushed = self.neighbor(ix, iy)
-            if isinstance(pushed, Boulder):
-                if self.pushing == (ix, iy):
-                    if pushed.try_move(ix, iy): 
-                        Boulder.sound.play()
-                        return self.try_dir(ix, iy)
-                else:
-                    self.dir = (ix, iy)
-                    self.pushing = self.dir;
-                    self.try_wait()
+        pushed = self.neighbor(ix, iy)
+        if isinstance(pushed, Pushable):
+            if self.pushing == (ix, iy):
+                if pushed.try_move(ix, iy): 
+                    Pushable.sound.play()
+                    return self.try_dir(ix, iy)
+            else:
+                self.dir = (ix, iy)
+                self.pushing = self.dir;
+                self.try_wait()
         return False
 
     def on_destroy(self) -> None:

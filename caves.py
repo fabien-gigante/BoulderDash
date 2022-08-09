@@ -37,17 +37,33 @@ CAVES = [
             "W......................................W",
             "W.......b.b.b.b.b.b.b.b.b.b.b.b.b......W",
             "W......................................W",
-            "W......b.b.b.b.b.b.b.b.b.b.b.b.b.b.....W",
+            "W......b.b.k.b.b.b.b.b.b.b.k.b.b.b.....W",
             "W......................................W",
             "W.....b.b.b.b.b.b.b.b.b.b.b.b.b.b.b....W",
             "W......................................W",
-            "W....b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b...W",
+            "W....b.b.b.b.k.b.b.b.b.b.b.b.b.b.b.b...W",
             "W......................................W",
             "W...b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b..W",
             "W......................................W",
-            "W..b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.W",
+            "W..b.b.b.b.b.b.b.b.b.c.b.b.b.b.b.b.b.b.W",
             "W......................................W",
             "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW" ]
+    },
+    { # Level 22
+        'goal': 8, 
+        'map': [
+            "WWWWWWWWWWWWWWWWWWWW",
+            "W..E...  ...r.k r..W",
+            "W..     n.....rd...W",
+            "W...... ..   ......W",
+            "W  n   k    e  k   W",
+            "W......r..  ...d...W",
+            "W.....c......r.. ..W",
+            "W  k  e            W",
+            "Wk....d.....n... ..W",
+            "W.......r  ...n....W",
+            "W..rd.....c...k.X..W",
+            "WWWWWWWWWWWWWWWWWWWW"]
     }
 ]
 

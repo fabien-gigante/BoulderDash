@@ -58,8 +58,9 @@ class Cave:
 
     def load(self) -> None:
         types = {
-           'w': BrickWall, 'W': MetalWall, '.': Soil, 'r': Boulder, 'd': Diamond, 'E': Entry, 'X': Exit,
-           'f': Firefly, 'b': Butterfly, 'a': Amoeba, 'm': MagicWall, 'e': ExpandingWall, ' ': None, '_': None 
+           'w': BrickWall, 'W': MetalWall, 'r': Boulder, 'd': Diamond, 'E': Entry, 'X': Exit,
+           'f': Firefly, 'b': Butterfly, 'a': Amoeba, 'm': MagicWall, 'e': ExpandingWall,
+           'c': Crate, 'k': CrackedBoulder, 'n': Mineral, '.': Soil, ' ': None, '_': None 
         }
         self.nb_players = 0 ; self.to_collect = 0 ; self.collected = 0
         self.tiles = [] ; self.status = Cave.IN_PROGRESS ; self.wait = 0
@@ -76,7 +77,9 @@ class Cave:
                 self.tiles[y].append(tile)
     
     def next_level(self, level : Optional[int] = None) -> None:
-        self.level = max(1, self.level % len(CAVES) + 1 if level is None else level)
+        self.level = self.level + 1 if level is None else level
+        if self.level < 1 : self.level += len(CAVES)
+        elif self.level > len(CAVES) : self.level -= len(CAVES)
         self.load()
 
     def restart_level(self) -> None: self.next_level(self.level)
@@ -223,8 +226,8 @@ class Game(arcade.Window):
     def setup(self) -> None:
         arcade.set_background_color(arcade.color.BLACK)
         self.show_view(CaveView(self))
-        self.controllers = arcade.get_game_controllers()
         self.current_view.on_resize(self.width, self.height)
+        self.controllers = arcade.get_game_controllers()
         for ctrl in self.controllers: ctrl.open()
         self.reset()
         Cave(self)
@@ -236,7 +239,8 @@ class Game(arcade.Window):
         self.keys.append(key)
         if key == arcade.key.NUM_ADD : self.cave.next_level()
         elif key == arcade.key.NUM_SUBTRACT : self.cave.next_level(self.cave.level - 1)
-        elif key == arcade.key.NUM_MULTIPLY : self.reset() ; self.cave.restart_level()
+        elif (key == arcade.key.NUM_MULTIPLY or key == arcade.key.F5):
+           self.reset() ; self.cave.restart_level()
         elif key == arcade.key.NUM_DIVIDE : self.reset() ; self.cave.next_level(1)
         elif (
             (key == arcade.key.ENTER and modifiers & arcade.key.MOD_ALT) or
