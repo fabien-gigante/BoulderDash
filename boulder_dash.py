@@ -221,10 +221,10 @@ class CaveView(arcade.View):
         #print(f'on_draw : {t*1000} ms')
 
     def on_update(self, delta_time):
-        t = time.time()
+        #t = time.time()
         self.game.cave.on_update(delta_time)
-        t = time.time() - t
-        print(f'on_update : {t*1000} ms')
+        #t = time.time() - t
+        #print(f'on_update : {t*1000} ms')
 
 class Game(arcade.Window):
     TILE_SIZE = 40

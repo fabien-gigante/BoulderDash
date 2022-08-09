@@ -217,7 +217,7 @@ class Entry(Sprite):
             self.cave.replace(self, Miner(self.cave, self.x, self.y, self.player)); 
         else:
             # Explosion.sound_explosion.play()
-            self.cave.replace(self, Explosion); 
+            self.cave.replace(self, Soil); 
 
 class Exit(Sprite):
     sound = Sound(":resources:sounds/upgrade1.wav")
