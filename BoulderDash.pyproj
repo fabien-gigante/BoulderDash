@@ -33,6 +33,7 @@
     <Content Include="README.md" />
     <Content Include="screenshot.png" />
     <Content Include="Tiles\Amoeba16-0.png" />
+    <Content Include="Tiles\Amoeba64-0.png" />
     <Content Include="Tiles\Boulder16-0.png" />
     <Content Include="Tiles\Boulder64-0.png" />
     <Content Include="Tiles\BrickWall16-0.png" />
@@ -40,6 +41,10 @@
     <Content Include="Tiles\Butterfly16-1.png" />
     <Content Include="Tiles\Butterfly64-0.png" />
     <Content Include="Tiles\Butterfly64-1.png" />
+    <Content Include="Tiles\CrackedBoulder16-0.png" />
+    <Content Include="Tiles\CrackedBoulder64-0.png" />
+    <Content Include="Tiles\Crate16-0.png" />
+    <Content Include="Tiles\Crate64-0.png" />
     <Content Include="Tiles\Diamond16-0.png" />
     <Content Include="Tiles\Diamond16-1.png" />
     <Content Include="Tiles\Diamond16-2.png" />
@@ -52,6 +57,9 @@
     <Content Include="Tiles\Exit16-1.png" />
     <Content Include="Tiles\Exit64-1.png" />
     <Content Include="Tiles\ExpandingWall16-0.png" />
+    <Content Include="Tiles\ExpandingWall16-1.png" />
+    <Content Include="Tiles\ExpandingWall64-0.png" />
+    <Content Include="Tiles\ExpandingWall64-1.png" />
     <Content Include="Tiles\Explosion16-0.png" />
     <Content Include="Tiles\Firefly16-0.png" />
     <Content Include="Tiles\Firefly16-1.png" />
@@ -61,10 +69,16 @@
     <Content Include="Tiles\Firefly64-1.png" />
     <Content Include="Tiles\MagicWall16-0.png" />
     <Content Include="Tiles\MagicWall16-1.png" />
+    <Content Include="Tiles\MagicWall16-2.png" />
+    <Content Include="Tiles\MagicWall64-0.png" />
+    <Content Include="Tiles\MagicWall64-1.png" />
+    <Content Include="Tiles\MagicWall64-2.png" />
     <Content Include="Tiles\MetalWall16-0.png" />
     <Content Include="Tiles\MetalWall64-0.png" />
     <Content Include="Tiles\Miner16-0.png" />
     <Content Include="Tiles\Miner64-0.png" />
+    <Content Include="Tiles\Mineral16-0.png" />
+    <Content Include="Tiles\Mineral64-0.png" />
     <Content Include="Tiles\Soil16-0.png" />
     <Content Include="Tiles\Soil64-0.png" />
     <Content Include="Tiles\Unknown16-0.png" />
