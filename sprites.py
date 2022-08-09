@@ -22,9 +22,9 @@ class Sound(arcade.Sound):
         self.player = None
 
 class Sprite(arcade.Sprite):
-    TILE_SIZE = 16 # from 16, 64
+    TILE_SIZE = 64 # from 16, 64
     TILE_SCALE = Game.TILE_SIZE / TILE_SIZE
-    DEFAULT_SPEED = 15 # squares per second
+    DEFAULT_SPEED = 10 # squares per second
     PRIORITY_HIGH = 0
     PRIORITY_MEDIUM = 1
     PRIORITY_LOW = 2
@@ -115,7 +115,7 @@ class ExpandingWall(Wall):
             if self.neighbor(ix, 0) is None:
                 tile = ExpandingWall(self.cave, self.x+ix, self.y)
                 tile.set_skin(2 if ix == -1 else 1)
-                self.cave.tiles[self.y][self.x+ix] = tile
+                self.cave.set(self.x + ix, self.y, tile)
                 self.wait = 2 / Sprite.DEFAULT_SPEED
                 Boulder.sound_fall.play()
 
@@ -357,7 +357,7 @@ class MagicWall(BrickWall):
         if isinstance(ore, Ore): 
             ore = Boulder(self.cave, self.x, self.y) if isinstance(ore, Diamond) else Diamond(self.cave, self.x, self.y)
             ore.tick() # continue its fall through...
-            self.cave.tiles[self.y][self.x] = self
+            self.cave.set(self.x, self.y, self)
 
 class Amoeba(Sprite):
     def __init__(self, cave: Cave, x: int, y: int) -> None:
@@ -377,7 +377,7 @@ class Amoeba(Sprite):
                 proba = 20 if neighbor is None else 80
                 if random.randint(0, proba) == 0:
                     (ix,iy) = look ; (x,y) = (self.x+ix, self.y+iy)
-                    self.cave.tiles[y][x] = Amoeba(self.cave,x,y)
+                    self.cave.set(x, y, Amoeba(self.cave, x, y))
         self.try_wait()
 
     def can_be_occupied(self, by: 'Sprite') -> bool: return isinstance(by, Firefly)

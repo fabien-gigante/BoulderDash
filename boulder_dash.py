@@ -1,4 +1,6 @@
+from cmath import tau
 import arcade
+import time
 from typing import Optional, Union, Tuple, Generator
 from sprites import *
 from caves import *
@@ -54,6 +56,7 @@ class Cave:
 
     def __init__(self, game: "Game") -> None:
         self.game = game ; self.game.cave = self
+        self.sprite_list = arcade.SpriteList()
         self.next_level(1)
 
     def load(self) -> None:
@@ -96,10 +99,15 @@ class Cave:
 
     def at(self, x: int , y: int) -> Optional['Sprite']:
         return self.tiles[y][x] if self.within_bounds(x,y) else None
+    
+    def set(self, x: int , y: int, sprite: Optional['Sprite'] ) -> Optional['Sprite']:
+        current = self.at(x, y)
+        if self.within_bounds(x,y): self.tiles[y][x] = sprite
+        return current
 
     def replace(self, sprite : 'Sprite', by : Union['Sprite', type, None]) -> None:
         if self.at(sprite.x, sprite.y) is sprite: # still there ?
-            self.tiles[sprite.y][sprite.x] = by(self, sprite.x, sprite.y) if isinstance(by, type) else by
+            self.set(sprite.x, sprite.y, by(self, sprite.x, sprite.y) if isinstance(by, type) else by)
             sprite.on_destroy()
 
     def replace_all(self, cond: Optional[Union[int,type]], by: Union['Sprite', type, None]) -> None:
@@ -112,9 +120,9 @@ class Cave:
 
     def try_move(self, sprite: 'Sprite', x: int , y: int) -> bool:
         if not self.can_move(sprite, x, y): return False
-        tile = self.at(x,y)
-        self.tiles[sprite.y][sprite.x] = None
-        self.tiles[y][x] = sprite
+        if (sprite.x, sprite.y) == (x,y): return True
+        self.set(sprite.x, sprite.y, None)
+        tile = self.set(x,y,sprite)
         (sprite.x, sprite.y) = (x,y)
         sprite.on_moved(tile)
         if tile is not None and self.at(x,y) != tile: tile.on_destroy()
@@ -126,7 +134,14 @@ class Cave:
                 if tile is not None and tile.is_kind_of(cond): yield tile
 
     def draw(self) -> None:
-        for sprite in self.sprites(): sprite.draw()
+        self.sprite_list.draw()
+
+    def update_sprite_list(self) -> None:
+        cave_sprites = [*self.sprites()]
+        for s in self.sprite_list:
+           if not s in cave_sprites: self.sprite_list.remove(s)
+        for s in cave_sprites:             
+            if not s in self.sprite_list: self.sprite_list.append(s)
 
     def on_update(self, delta_time) -> None:
         if self.wait > 0:
@@ -137,16 +152,17 @@ class Cave:
         for priority in [Sprite.PRIORITY_HIGH, Sprite.PRIORITY_MEDIUM, Sprite.PRIORITY_LOW]:
             for sprite in self.sprites(priority): sprite.on_update(delta_time)
         Amoeba.on_update_cave(self)
+        self.update_sprite_list()
 
     def explode(self, x: int, y: int, type : Optional[type] = None) -> None:
         if type is None: type = Explosion
         type.sound_explosion.play()
-        for i in range(x-1, x+2):
-            for j in range(y-1, y+2):
-                if self.within_bounds(i, j):
-                    tile = self.tiles[j][i]
+        for x in range(x - 1, x + 2):
+            for y in range(y - 1, y + 2):
+                if self.within_bounds(x, y):
+                    tile = self.at(x, y)
                     if tile is None or (not isinstance(tile,type) and tile.can_break()):
-                        self.tiles[j][i] = type(self, i, j);
+                        self.set(x, y, type(self, x, y))
                         if not tile is None: tile.on_destroy()
 
 class CaveView(arcade.View):
@@ -191,19 +207,24 @@ class CaveView(arcade.View):
         arcade.draw_text(text, x*Game.TILE_SIZE, Game.HEIGHT - 7/8 * Game.TILE_SIZE, color, Game.TILE_SIZE, w * Game.TILE_SIZE, align, Game.FONT)
 
     def on_draw(self) -> None:
+        #t = time.time()
         self.camera.use()
         self.clear()
         self.game.cave.draw()
-
         self.camera_gui.use()
         arcade.draw_lrtb_rectangle_filled(0, self.game.width, Game.HEIGHT, Game.HEIGHT - Game.TILE_SIZE, (0,0,0,192))
         self.print( 0, 4, 'LEVEL') ; self.print( 0, -4, f'{self.game.cave.level:02}')
         self.print( 5, 3, 'LIFE')  ; self.print( 5, -3, f'{self.game.players[0].life:01}')
         self.print( 9, 5, 'GOAL')  ; self.print( 9, -5, f'{self.game.cave.collected:02}/{self.game.cave.to_collect:02}')
         self.print(15, 5, 'SCORE') ; self.print(15, -5, f'{self.game.players[0].score:04}')
+        #t = time.time() - t
+        #print(f'on_draw : {t*1000} ms')
 
     def on_update(self, delta_time):
+        #t = time.time()
         self.game.cave.on_update(delta_time)
+        #t = time.time() - t
+        #print(f'on_update : {t*1000} ms')
 
 class Game(arcade.Window):
     TILE_SIZE = 40
