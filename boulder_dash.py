@@ -137,11 +137,11 @@ class Cave:
         self.sprite_list.draw()
 
     def update_sprite_list(self) -> None:
-        cave_sprites = [*self.sprites()]
+        cave_sprites = { *self.sprites() }
         for s in self.sprite_list:
            if not s in cave_sprites: self.sprite_list.remove(s)
         for s in cave_sprites:             
-            if not s in self.sprite_list: self.sprite_list.append(s)
+            if len(s.sprite_lists) == 0: self.sprite_list.append(s)
 
     def on_update(self, delta_time) -> None:
         if self.wait > 0:
@@ -221,10 +221,10 @@ class CaveView(arcade.View):
         #print(f'on_draw : {t*1000} ms')
 
     def on_update(self, delta_time):
-        #t = time.time()
+        t = time.time()
         self.game.cave.on_update(delta_time)
-        #t = time.time() - t
-        #print(f'on_update : {t*1000} ms')
+        t = time.time() - t
+        print(f'on_update : {t*1000} ms')
 
 class Game(arcade.Window):
     TILE_SIZE = 40
