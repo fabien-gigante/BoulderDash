@@ -5,12 +5,25 @@ from typing import Optional, Union
 from boulder_dash import Game, Cave, Player
 
 class Sound(arcade.Sound):
-    def __init__(self, file): 
+    def __init__(self, file) -> None: 
         super().__init__(file)
-        self.play().delete() # force audio preloading
+        super().play().delete() # force audio preloading
+        self.player = None
+    def play(self):
+        # don't play multiple times the same sound simultaneously
+        if self.player is not None: 
+            self.player.pause()
+            self.player.delete()
+        self.player = super().play()
+        self.player.on_eos = lambda : self.on_ended()
+        return self.player
+    def on_ended(self) -> None:
+        if self.player is not None: self.player.delete()
+        self.player = None
+        
 
 class Sprite(arcade.Sprite):
-    TILE_SIZE = 16 # 64
+    TILE_SIZE = 64 # from 16, 64
     TILE_SCALE = Game.TILE_SIZE / TILE_SIZE
     DEFAULT_SPEED = 15 # squares per second
     PRIORITY_HIGH = 0
@@ -166,7 +179,7 @@ class Entry(Sprite):
         if self.cave.nb_players < len(self.cave.game.players):
             self.player = self.cave.game.players[self.cave.nb_players]
             self.cave.nb_players += 1
-            self.player.center_on(self.center_x, self.center_y)
+            self.player.center_on(self.center_x, self.center_y, 1)
         else: self.player = None
 
     def tick(self) -> None:

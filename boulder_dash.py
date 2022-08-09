@@ -34,8 +34,8 @@ class Player:
             self.controller.x > +.5 and (ix,iy) == (+1,0)
         )
 
-    def center_on(self, x, y) -> None:
-       if self.id == 0: self.game.center_on(x, y, 0.1)
+    def center_on(self, x, y, speed = 0.1) -> None:
+       if self.id == 0: self.game.center_on(x, y, speed)
 
     def kill(self) -> None:
         self.life -= 1
