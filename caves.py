@@ -50,7 +50,7 @@ CAVES = [
             "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW" ]
     },
     { # Level 22
-        'goal': 8, 
+        'goal': 8, 'miner': 'Girl',
         'map': [
             "WWWWWWWWWWWWWWWWWWWW",
             "W..E...  ...r.k r..W",
@@ -58,7 +58,7 @@ CAVES = [
             "W...... ..   ......W",
             "W  n   k    e  k   W",
             "W......r..w ...d...W",
-            "Wp ...c...w..r... pW",
+            "Wp ..c....w..r... pW",
             "W  k  e            W",
             "Wk....d..   n... ..W",
             "W.......r c ..n....W",

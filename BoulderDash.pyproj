@@ -31,6 +31,22 @@
       <Publish>True</Publish>
     </Content>
     <Content Include="README.md" />
+    <Content Include="res\Girl16-0.png" />
+    <Content Include="res\Girl16-1.png" />
+    <Content Include="res\Girl64-0.png" />
+    <Content Include="res\Girl64-1.png" />
+    <Content Include="res\MetalCrate16-0.png" />
+    <Content Include="res\MetalCrate64-0.png" />
+    <Content Include="res\Miner16-1.png" />
+    <Content Include="res\Miner64-1.png" />
+    <Content Include="res\Portal16-0-back.png" />
+    <Content Include="res\Portal16-0.png" />
+    <Content Include="res\Portal16-1-back.png" />
+    <Content Include="res\Portal16-1.png" />
+    <Content Include="res\Portal64-0.png" />
+    <Content Include="res\Portal64-1.png" />
+    <Content Include="res\WoodCrate16-0.png" />
+    <Content Include="res\WoodCrate64-0.png" />
     <Content Include="screenshot.png" />
     <Content Include="res\Amoeba16-0.png" />
     <Content Include="res\Amoeba64-0.png" />
@@ -43,8 +59,6 @@
     <Content Include="res\Butterfly64-1.png" />
     <Content Include="res\CrackedBoulder16-0.png" />
     <Content Include="res\CrackedBoulder64-0.png" />
-    <Content Include="res\Crate16-0.png" />
-    <Content Include="res\Crate64-0.png" />
     <Content Include="res\Diamond16-0.png" />
     <Content Include="res\Diamond16-1.png" />
     <Content Include="res\Diamond16-2.png" />

@@ -37,7 +37,6 @@ class Sprite(arcade.Sprite):
 
     def add_skin(self, name: str, id: int, flip_h: bool = False, flip_v: bool = False) -> None: 
         texture = arcade.load_texture(f'res/{name}{Sprite.TILE_SIZE}-{id}.png', 0,0, Sprite.TILE_SIZE, Sprite.TILE_SIZE, flip_h, flip_v)
-        texture.short_name = name
         self.append_texture(texture)
         self.nb_skins += 1
     def set_skin(self, i: int) -> None: self.skin = i; self.set_texture(i)
@@ -174,11 +173,11 @@ class Diamond(Massive):
 
 class CrackedBoulder(Boulder):
     WAIT_CRACK = .125 # sec
-    def __init__(self, cave: Cave, x: int, y: int, type = None) -> None: 
+    def __init__(self, cave: Cave, x: int, y: int, crack_type = None) -> None: 
         super().__init__(cave, x, y)
-        self.add_skin(self.textures[0].short_name, 0, True)
+        self.add_skin(type(self).__name__, 0, True)
         self.crack_time = math.inf
-        self.crack_type = type if type is not None else Explosion
+        self.crack_type = crack_type if crack_type is not None else Explosion
     def on_end_fall(self, onto: Sprite) -> None:
         super().on_end_fall(onto)
         self.next_skin()
@@ -233,7 +232,7 @@ class Entry(Sprite):
     def tick(self) -> None:
         if self.player is not None and self.player.life > 0: 
             Entry.sound.play()
-            self.cave.replace(self, Miner(self.cave, self.x, self.y, self.player)); 
+            self.cave.replace(self, self.cave.miner_type(self.cave, self.x, self.y, self.player)); 
         else:
             Explosion.sound_explosion.play()
             self.cave.replace(self, Explosion); 
@@ -268,7 +267,8 @@ class Character(Sprite):
 
 class Miner(Character):
     def __init__(self, cave: Cave, x: int, y: int, player: Player) -> None:
-        super().__init__(cave, x, y)
+        super().__init__(cave, x, y, 2)
+        self.set_skin(player.id % self.nb_skins)
         self.pushing = None
         self.player = player
         self.priority = Sprite.PRIORITY_HIGH
@@ -314,6 +314,9 @@ class Miner(Character):
     def on_destroy(self) -> None:
         super().on_destroy()
         self.player.kill()
+
+class Girl(Miner):
+    def __init__(self, cave: Cave, x: int, y: int, player: Player) -> None: super().__init__(cave, x, y, player)
 
 class Firefly(Character):
     def __init__(self, cave: Cave, x: int, y: int) -> None:

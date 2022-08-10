@@ -69,6 +69,7 @@ class Cave:
         self.nb_players = 0 ; self.to_collect = 0 ; self.collected = 0
         self.tiles = [] ; self.status = Cave.IN_PROGRESS ; self.wait = 0
         cave = CAVES[self.level - 1]
+        self.miner_type = globals()[cave['miner']] if 'miner' in cave else Miner
         self.height = len(cave['map'])
         self.width = len(cave['map'][0])
         self.to_collect = cave['goal']
