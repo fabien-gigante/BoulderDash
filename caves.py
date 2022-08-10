@@ -60,8 +60,8 @@ CAVES = [
             "W......r..  ...d...W",
             "W.....c......r.. ..W",
             "W  k  e            W",
-            "Wk....d.....n... ..W",
-            "W.......r  ...n....W",
+            "Wk....d..   n... ..W",
+            "W.......r c ..n....W",
             "W..rd.....c...k.X..W",
             "WWWWWWWWWWWWWWWWWWWW"]
     }
