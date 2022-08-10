@@ -223,6 +223,7 @@ class CaveView(arcade.View):
     def on_update(self, delta_time):
         #t = time.time()
         self.game.cave.on_update(delta_time)
+        # TODO : move the SpriteList logic here
         #t = time.time() - t
         #print(f'on_update : {t*1000} ms')
 
@@ -247,7 +248,7 @@ class Game(arcade.Window):
     def setup(self) -> None:
         arcade.set_background_color(arcade.color.BLACK)
         self.show_view(CaveView(self))
-        self.current_view.on_resize(self.width, self.height)
+        self.current_view.on_resize(self.width, self.height) # TODO : move to CaveView.show_view
         self.controllers = arcade.get_game_controllers()
         for ctrl in self.controllers: ctrl.open()
         self.reset()
