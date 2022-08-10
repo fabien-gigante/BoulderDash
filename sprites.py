@@ -1,26 +1,22 @@
 import arcade
 import pyglet
 import random
+import time
+import math
 from typing import Optional, Union
 from boulder_dash import Game, Cave, Player
 
 class Sound(arcade.Sound):
-    # TODO : simplify this entire logic, replace self.player by self.last_played and check if not already played within the same frame (< 1/60 sec)
     def __init__(self, file) -> None: 
         super().__init__(file)
+        self.last_played = -math.inf
         super().play().delete() # force audio preloading
-        self.player = None
     def play(self):
-        # don't play multiple times the same sound simultaneously
-        if self.player is not None: 
-            self.player.pause()
-            self.player.delete()
-        self.player = super().play()
-        self.player.on_eos = lambda : self.on_ended()
-        return self.player
-    def on_ended(self) -> None:
-        if self.player is not None: self.player.delete()
-        self.player = None
+        now = time.time()
+        # already played within the same frame
+        if (now - self.last_played < 1/60): return
+        self.last_played = now
+        return super().play()
 
 class Sprite(arcade.Sprite):
     TILE_SIZE = 64 # choose from 16, 64
@@ -58,10 +54,10 @@ class Sprite(arcade.Sprite):
         return cond is None or (isinstance(cond, type) and isinstance(self, cond)) or self.priority == cond
 
     def can_move(self, ix: int, iy: int)  -> bool:
-        return self.cave.can_move(self, self.x + ix, self.y + iy)
+        return self.cave.can_move(self, ix, iy)
 
     def try_move(self, ix: int, iy: int) -> bool:
-        if self.cave.try_move(self, self.x + ix, self.y + iy):
+        if self.cave.try_move(self, ix, iy):
             self.compute_pos()
             self.moved = True
             return self.try_wait()
@@ -133,10 +129,7 @@ class Ore(Pushable):
 
     def can_move(self, ix: int, iy: int)  -> bool: 
         return iy <= 0 and super().can_move(ix, iy)
-    # TODO : remove try_move override once Cave.can_move migrated
-    def try_move(self, ix: int, iy: int)  -> bool: 
-        return iy <= 0 and super().try_move(ix, iy)
-
+    
     def tick(self) -> None:
         if self.try_move(0, -1): return
         elif self.moving: self.on_end_fall(self.neighbor(0, -1))
