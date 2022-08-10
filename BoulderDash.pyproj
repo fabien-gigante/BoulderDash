@@ -30,6 +30,8 @@
     <Content Include="caves.py">
       <Publish>True</Publish>
     </Content>
+    <Content Include="doc\screenshot1.png" />
+    <Content Include="doc\screenshot22.png" />
     <Content Include="README.md" />
     <Content Include="res\Girl16-0.png" />
     <Content Include="res\Girl16-1.png" />
@@ -47,7 +49,6 @@
     <Content Include="res\Portal64-1.png" />
     <Content Include="res\WoodCrate16-0.png" />
     <Content Include="res\WoodCrate64-0.png" />
-    <Content Include="screenshot.png" />
     <Content Include="res\Amoeba16-0.png" />
     <Content Include="res\Amoeba64-0.png" />
     <Content Include="res\Boulder16-0.png" />
@@ -100,6 +101,7 @@
     <Content Include="res\BrickWall64-0.png" />
   </ItemGroup>
   <ItemGroup>
+    <Folder Include="doc\" />
     <Folder Include="res\" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
