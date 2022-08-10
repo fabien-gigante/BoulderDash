@@ -1,5 +1,4 @@
 import arcade
-import pyglet
 import random
 import time
 import math
@@ -13,8 +12,7 @@ class Sound(arcade.Sound):
         super().play().delete() # force audio preloading
     def play(self):
         now = time.time()
-        # already played within the same frame
-        if (now - self.last_played < 1/60): return
+        if (now - self.last_played < 1/60): return # already played within the same frame
         self.last_played = now
         return super().play()
 

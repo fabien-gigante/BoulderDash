@@ -1,4 +1,5 @@
 import arcade
+import pyglet
 import time
 from typing import Optional, Union, Tuple, Generator
 from sprites import *
