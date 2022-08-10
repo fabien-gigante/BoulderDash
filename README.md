@@ -7,7 +7,11 @@ Prototype de clone de Boulder Dash
 Site officiel : https://boulder-dash.com/  
 Règles originales complètes : https://www.elmerproductions.com/sp/peterb/
 
-![Capture d'écran](screenshot.png)
+![Capture d'écran](screenshot1.png)
+
+L'adaptation inclut quelques objects spéciaux...
+
+![Capture d'écran](screenshot22.png)
 
 ## Le code
 
