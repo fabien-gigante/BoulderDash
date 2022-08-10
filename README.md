@@ -5,15 +5,15 @@ Prototype de clone de Boulder Dash
 ## Le jeu
 
 Site officiel : https://boulder-dash.com/  
-RËgles originales complËtes : https://www.elmerproductions.com/sp/peterb/
+R√®gles originales compl√®tes : https://www.elmerproductions.com/sp/peterb/
 
-![Capture d'Ècran](doc/screenshot1.png)
+![Capture d'√©cran](doc/screenshot1.png)
 
-L'adaptation inclut quelques objects spÈciaux...
+L'adaptation inclut quelques √©l√©ments sp√©ciaux...
 
-![Capture d'Ècran](doc/screenshot22.png)
+![Capture d'√©cran](doc/screenshot22.png)
 
 ## Le code
 
-BibliothËque Arcade : https://api.arcade.academy/en/latest/  
+Biblioth√®que Arcade : https://api.arcade.academy/en/latest/  
 Code source d'Arcade : 'https://github.com/pythonarcade/arcade
