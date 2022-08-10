@@ -9,12 +9,12 @@ class Sound(arcade.Sound):
     def __init__(self, file) -> None: 
         super().__init__(file)
         self.last_played = -math.inf
-        super().play().delete() # force audio preloading
+        super().play(0).delete() # force audio preloading
     def play(self):
         now = time.time()
         if (now - self.last_played < 1/60): return # already played within the same frame
         self.last_played = now
-        return super().play()
+        return super().play(0.5)
 
 class Sprite(arcade.Sprite):
     TILE_SIZE = 64 # choose from 16, 64
