@@ -1,3 +1,4 @@
+from ast import Lambda
 import arcade
 import pyglet
 import time
@@ -63,23 +64,27 @@ class Cave:
         types = {
            'w': BrickWall, 'W': MetalWall, 'r': Boulder, 'd': Diamond, 'E': Entry, 'X': Exit,
            'f': Firefly, 'b': Butterfly, 'a': Amoeba, 'm': MagicWall, 'e': ExpandingWall,
-           'k': CrackedBoulder, 'n': Mineral,'c': WoodCrate, 't': MetalCrate, 'p': Portal,
+           'k': CrackedBoulder, 'n': Mineral,'c': WoodCrate, 'h': MetalCrate, 't': CrateTarget, 'p': Portal,
            '.': Soil, ' ': None, '_': None 
         }
         self.nb_players = 0 ; self.to_collect = 0 ; self.collected = 0
-        self.tiles = [] ; self.status = Cave.IN_PROGRESS ; self.wait = 0
+        self.status = Cave.IN_PROGRESS ; self.wait = 0
+        self.tiles = [] ; self.back_tiles = []
         cave = CAVES[self.level - 1]
         self.miner_type = globals()[cave['miner']] if 'miner' in cave else Miner
         self.height = len(cave['map'])
         self.width = len(cave['map'][0])
         self.to_collect = cave['goal']
-        for y in range(0, self.height):
+        for y in range(self.height):
+            self.back_tiles.append([None for _ in range(self.width)])
             self.tiles.append([])
-            for x in range(0, self.width):
+            for x in range(self.width):
                 key = cave['map'][self.height -1 - y][x]
                 type = types[key] if key in types else Unknown
                 tile = type(self, x, y) if not type is None else None
                 self.tiles[y].append(tile)
+        for sprite in self.sprites(): sprite.on_loaded()
+        self.game.on_loaded()
     
     def next_level(self, level : Optional[int] = None) -> None:
         self.level = self.level + 1 if level is None else level
@@ -136,6 +141,11 @@ class Cave:
             for tile in row:
                 if tile is not None and tile.is_kind_of(cond): yield tile
 
+    def back_sprites(self, cond: Optional[Union[int,type]] = None) -> Generator['Sprite', None, None]:
+        for row in self.back_tiles:
+            for tile in row:
+                if tile is not None and tile.is_kind_of(cond): yield tile
+
     def on_update(self, delta_time) -> None:
         if self.wait > 0:
             self.wait -= delta_time
@@ -144,7 +154,7 @@ class Cave:
                elif self.status == Cave.FAILED: self.restart_level()
         for priority in [Sprite.PRIORITY_HIGH, Sprite.PRIORITY_MEDIUM, Sprite.PRIORITY_LOW]:
             for sprite in self.sprites(priority): sprite.on_update(delta_time)
-        Amoeba.on_update_cave(self)
+        for update in Sprite.global_updates: update(self)
 
     def explode(self, x: int, y: int, type : Optional[type] = None) -> None:
         if type is None: type = Explosion
@@ -168,6 +178,7 @@ class CaveView(arcade.View):
 
     def on_show_view(self)  -> None:
         self.on_resize(self.window.width, self.window.height)
+        self.on_loaded()
 
     def on_resize(self, width: int, height: int) -> None:
         if self.camera is None or self.camera.viewport_width != width or self.camera.viewport_height != height:
@@ -203,7 +214,7 @@ class CaveView(arcade.View):
         #start_time = time.time()
         self.camera.use()
         self.clear()
-        self.sprite_list.draw()
+        self.sprite_list.draw() # pixelated = True
         self.camera_gui.use()
         arcade.draw_lrtb_rectangle_filled(0, self.window.width, self.window.height, self.window.height - Game.TILE_SIZE, (0,0,0,192))
         self.print( 0, 4, 'LEVEL') ; self.print( 0, -4, f'{self.game.cave.level:02}')
@@ -212,14 +223,18 @@ class CaveView(arcade.View):
         self.print(15, 5, 'SCORE') ; self.print(15, -5, f'{self.game.players[0].score:04}')
         #print(f'on_draw : {(time.time() - start_time) * 1000} ms')
 
+    def on_loaded(self) -> None:
+        self.sprite_list.clear()
+
     def on_update(self, delta_time):
         #start_time = time.time()
         self.game.cave.on_update(delta_time)
-        cave_sprites = { *self.game.cave.sprites() }
+        cave_sprites = { *self.game.cave.back_sprites(), *self.game.cave.sprites() }
         for s in self.sprite_list:
            if not s in cave_sprites: self.sprite_list.remove(s)
         for s in cave_sprites:             
             if len(s.sprite_lists) == 0: self.sprite_list.append(s)
+        self.sprite_list.sort(key=lambda x: not isinstance(x, BackSprite))
         #print(f'on_update : {(time.time() - start_time) * 1000} ms')
 
 class Game(arcade.Window):
@@ -248,7 +263,9 @@ class Game(arcade.Window):
         self.show_view(CaveView(self))
 
     def center_on(self, x, y, speed = 1) -> None:
-        self.current_view.center_on(x, y, speed)
+        if self.current_view is not None:self.current_view.center_on(x, y, speed)
+    def on_loaded(self) -> None:
+        if self.current_view is not None: self.current_view.on_loaded()
 
     def on_key_press(self, key, modifiers): 
         self.keys.append(key)

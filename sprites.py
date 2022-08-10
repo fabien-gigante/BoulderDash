@@ -24,10 +24,11 @@ class Sprite(arcade.Sprite):
     PRIORITY_MEDIUM = 1
     PRIORITY_LOW = 2
 
+    global_updates = []
     def __init__(self, cave: Cave, x: int, y: int, n: int = 1) -> None:
         super().__init__(None, Sprite.TILE_SCALE)
         self.nb_skins = 0
-        for i in range(0, n): self.add_skin(type(self).__name__, i)
+        for i in range(n): self.add_skin(type(self).__name__, i)
         if n > 0: self.set_skin(0)
         self.cave = cave
         self.x = x ; self.y = y ; self.dir = (0, 0)
@@ -80,6 +81,7 @@ class Sprite(arcade.Sprite):
     def on_moved(self, into: Optional['Sprite']) -> None: pass
     def can_break(self) -> bool:  return True
     def on_destroy(self) -> None: pass
+    def on_loaded(self) -> None: pass
 
 class Unknown(Sprite):
     def __init__(cave: Cave, x: int, y: int) -> None: super().__init__(cave, x, y)
@@ -190,13 +192,6 @@ class CrackedBoulder(Boulder):
 class Mineral(CrackedBoulder):
     sound_fall = Diamond.sound_fall
     def __init__(self, cave: Cave, x: int, y: int) -> None: super().__init__(cave, x, y, Diamond)
-
-class WoodCrate(Pushable):
-    def __init__(self, cave: Cave, x: int, y: int) -> None: super().__init__(cave, x, y)
-
-class MetalCrate(Pushable):
-    def __init__(self, cave: Cave, x: int, y: int) -> None: super().__init__(cave, x, y)
-    def can_break(self) -> bool:  return False
 
 class Explosion(Sprite):
     WAIT_CLEAR = .125 # seconds
@@ -401,17 +396,16 @@ class Amoeba(Sprite):
     def can_be_occupied(self, by: 'Sprite', ix:int, iy:int) -> bool: return isinstance(by, Firefly)
 
     @staticmethod
-    def on_update_cave(cave: Cave) -> bool:
-        count = 0 ; trapped = True
-        for amoeba in cave.sprites(Amoeba): 
-            count += 1
-            if not amoeba.trapped: trapped = False
-        if trapped and count > 0:
+    def on_global_update(cave: Cave) -> bool:
+        amoebas = [*cave.sprites(Amoeba)]
+        if len(amoebas) > 0 and all(amoeba.trapped for amoeba in amoebas):
             cave.replace_all(Amoeba, Diamond)
             Diamond.sound_explosion.play()
-        elif count >= 200:
+        elif len(amoebas) >= 200:
             cave.replace_all(Amoeba, Boulder)
             Boulder.sound_fall.play()
+
+Sprite.global_updates.append(Amoeba.on_global_update)
 
 class Portal(Sprite):
     sound = Sound(":resources:sounds/phaseJump1.wav")
@@ -448,3 +442,46 @@ class Portal(Sprite):
         if not entering.try_move(*entering.dir):
             if isinstance(entering, Miner): entering.try_push(*entering.dir)
         self.cave.set(self.link.x, self.link.y, self.link)
+
+class Crate(Pushable):
+    def __init__(self, cave: Cave, x: int, y: int) -> None:
+        super().__init__(cave, x, y, 2)
+        self.solved = False
+    def on_moved(self, into: Optional[Sprite]) -> None:
+        placed = isinstance(self.cave.back_tiles[self.y][self.x], CrateTarget)
+        self.set_skin(1 if placed else 0)
+        super().on_moved(into)
+
+    @staticmethod
+    def on_global_update(cave: Cave) -> bool:
+        targets = [*cave.back_sprites(CrateTarget)]
+        if len(targets) > 0 and all(isinstance(target.front(), Crate) for target in targets):
+            for crate in (target.front() for target in targets):
+                crate.solved = True
+                cave.replace(crate, Diamond)
+            Diamond.sound_explosion.play()
+
+Sprite.global_updates.append(Crate.on_global_update)
+
+class WoodCrate(Crate):
+    def __init__(self, cave: Cave, x: int, y: int) -> None: super().__init__(cave, x, y)
+    def can_be_occupied(self, by: Sprite, ix:int, iy:int) -> bool: 
+        return isinstance(by, Massive) and by.moving
+    def on_destroy(self) -> None:
+       if not self.solved: self.cave.explode(self.x, self.y)
+
+class MetalCrate(Crate):
+    def __init__(self, cave: Cave, x: int, y: int) -> None: super().__init__(cave, x, y)
+    def can_break(self) -> bool:  return False
+
+class BackSprite(Sprite):
+    def __init__(self, cave: Cave, x: int, y: int) -> None: super().__init__(cave, x, y)
+    def on_loaded(self) -> None:
+        self.cave.replace(self, None)
+        self.cave.back_tiles[self.y][self.x] = self
+    def front(self) -> Optional[Sprite]:
+        return self.cave.at(self.x,self.y)
+
+class CrateTarget(BackSprite):
+    def __init__(self, cave: Cave, x: int, y: int) -> None: super().__init__(cave, x, y)
+    def is_placed(self) -> bool:return isinstance(self.front(), Crate)
