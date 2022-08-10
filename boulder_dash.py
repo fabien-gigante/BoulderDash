@@ -156,11 +156,11 @@ class Cave:
             for sprite in self.sprites(priority): sprite.on_update(delta_time)
         for update in Sprite.global_updates: update(self)
 
-    def explode(self, x: int, y: int, type : Optional[type] = None) -> None:
+    def explode(self, cx: int, cy: int, type : Optional[type] = None) -> None:
         if type is None: type = Explosion
         type.sound_explosion.play()
-        for x in range(x - 1, x + 2):
-            for y in range(y - 1, y + 2):
+        for x in range(cx - 1, cx + 2):
+            for y in range(cy - 1, cy + 2):
                 if self.within_bounds(x, y):
                     tile = self.at(x, y)
                     if tile is None or (not isinstance(tile,type) and tile.can_break()):
