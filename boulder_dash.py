@@ -53,16 +53,18 @@ class Cave:
     IN_PROGRESS = 0
     FAILED = -1
     SUCCEEDED = 1
+    WAIT_STATUS = 0.25 # seconds
 
     def __init__(self, game: "Game") -> None:
-        self.game = game ; self.game.cave = self
+        self.game = game
         self.next_level(1)
 
     def load(self) -> None:
         types = {
            'w': BrickWall, 'W': MetalWall, 'r': Boulder, 'd': Diamond, 'E': Entry, 'X': Exit,
            'f': Firefly, 'b': Butterfly, 'a': Amoeba, 'm': MagicWall, 'e': ExpandingWall,
-           'c': Crate, 'k': CrackedBoulder, 'n': Mineral, '.': Soil, ' ': None, '_': None 
+           'k': CrackedBoulder, 'n': Mineral,'c': WoodCrate, 't': MetalCrate, 'p': Portal,
+           '.': Soil, ' ': None, '_': None 
         }
         self.nb_players = 0 ; self.to_collect = 0 ; self.collected = 0
         self.tiles = [] ; self.status = Cave.IN_PROGRESS ; self.wait = 0
@@ -91,7 +93,7 @@ class Cave:
     
     def set_status(self, status) -> None:
         self.status = status
-        self.wait = 0.25 # seconds
+        self.wait = Cave.WAIT_STATUS
 
     def within_bounds(self, x: int ,y: int) -> bool:
         return x >= 0 and y >= 0 and x < self.width and y < self.height
@@ -116,7 +118,7 @@ class Cave:
         (x, y) = (sprite.x + ix, sprite.y + iy)
         if not self.within_bounds(x,y): return False
         tile = self.at(x,y)
-        return tile is None or tile.can_be_occupied(sprite)
+        return tile is None or tile.can_be_occupied(sprite, ix, iy)
 
     def try_move(self, sprite: 'Sprite', ix: int , iy: int) -> bool:
         if not sprite.can_move(ix, iy): return False
@@ -171,13 +173,12 @@ class CaveView(arcade.View):
             self.camera = arcade.Camera(width, height)
             self.camera_gui = arcade.Camera(width, height)
             if not self.center is None: self.center_on(*self.center)
-            # TO FIX: formula below wrong for various values of Game.TILE_SIZE
-            if width > Cave.WIDTH_MAX * Game.TILE_SIZE:
-                self.camera_gui.move_to( ((Game.WIDTH - width)/2,  Game.HEIGHT - (Cave.HEIGHT_MAX+4) * Game.TILE_SIZE ))
+            gui_offset = Game.TILE_SIZE if height > (Cave.HEIGHT_MAX + 1) * Game.TILE_SIZE else 0
+            self.camera_gui.move_to( ((Game.WIDTH - width)/2, gui_offset))
 
     def center_on(self, x, y, speed = 1) -> None:
         self.center = (x, y) ; cave = self.game.cave; 
-        width = self.game.width ; height = self.game.height
+        width = self.window.width ; height = self.window.height
         if width > cave.width * Game.TILE_SIZE:
             cx = (cave.width * Game.TILE_SIZE - width) / 2
         else:
@@ -194,7 +195,8 @@ class CaveView(arcade.View):
 
     def print(self, x: int, w: int, text: str) -> None:
         (color, align, w) = (arcade.color.GRULLO, 'left', w) if w >= 0 else (arcade.color.DARK_PASTEL_GREEN, 'right', -w)
-        arcade.draw_text(text, x*Game.TILE_SIZE, Game.HEIGHT - 7/8 * Game.TILE_SIZE, color, Game.TILE_SIZE, w * Game.TILE_SIZE, align, Game.FONT)
+        y = self.window.height - 7/8 * Game.TILE_SIZE
+        arcade.draw_text(text, x*Game.TILE_SIZE, y, color, Game.TILE_SIZE, w * Game.TILE_SIZE, align, Game.FONT)
 
     def on_draw(self) -> None:
         #start_time = time.time()
@@ -202,13 +204,12 @@ class CaveView(arcade.View):
         self.clear()
         self.sprite_list.draw()
         self.camera_gui.use()
-        arcade.draw_lrtb_rectangle_filled(0, self.game.width, Game.HEIGHT, Game.HEIGHT - Game.TILE_SIZE, (0,0,0,192))
+        arcade.draw_lrtb_rectangle_filled(0, self.window.width, self.window.height, self.window.height - Game.TILE_SIZE, (0,0,0,192))
         self.print( 0, 4, 'LEVEL') ; self.print( 0, -4, f'{self.game.cave.level:02}')
         self.print( 5, 3, 'LIFE')  ; self.print( 5, -3, f'{self.game.players[0].life:01}')
         self.print( 9, 5, 'GOAL')  ; self.print( 9, -5, f'{self.game.cave.collected:02}/{self.game.cave.to_collect:02}')
         self.print(15, 5, 'SCORE') ; self.print(15, -5, f'{self.game.players[0].score:04}')
         #print(f'on_draw : {(time.time() - start_time) * 1000} ms')
-
 
     def on_update(self, delta_time):
         #start_time = time.time()
@@ -231,7 +232,7 @@ class Game(arcade.Window):
 
     def __init__(self):
         super().__init__(Game.WIDTH, Game.HEIGHT, Game.TITLE)
-        self.set_icon(pyglet.image.load(f'Tiles/Miner{Sprite.TILE_SIZE}-0.png'))
+        self.set_icon(pyglet.image.load(f'res/Miner{Sprite.TILE_SIZE}-0.png'))
         self.keys = []
         self.cave = None
         self.players = []
@@ -239,12 +240,11 @@ class Game(arcade.Window):
     def reset(self) -> None : self.players = [ Player(self) ]
 
     def setup(self) -> None:
-        arcade.set_background_color(arcade.color.BLACK)
-        self.show_view(CaveView(self))
         self.controllers = arcade.get_game_controllers()
         for ctrl in self.controllers: ctrl.open()
-        self.reset()
-        Cave(self)
+        self.reset() ;  self.cave = Cave(self)
+        arcade.set_background_color(arcade.color.BLACK)
+        self.show_view(CaveView(self))
 
     def center_on(self, x, y, speed = 1) -> None:
         self.current_view.center_on(x, y, speed)

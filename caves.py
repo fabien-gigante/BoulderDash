@@ -54,15 +54,15 @@ CAVES = [
         'map': [
             "WWWWWWWWWWWWWWWWWWWW",
             "W..E...  ...r.k r..W",
-            "W..     n.....rd...W",
+            "Wr.     n.....rd...W",
             "W...... ..   ......W",
             "W  n   k    e  k   W",
-            "W......r..  ...d...W",
-            "W.....c......r.. ..W",
+            "W......r..w ...d...W",
+            "Wp ...c...w..r... pW",
             "W  k  e            W",
             "Wk....d..   n... ..W",
             "W.......r c ..n....W",
-            "W..rd.....c...k.X..W",
+            "W..rd.....t...k.X..W",
             "WWWWWWWWWWWWWWWWWWWW"]
     }
 ]
