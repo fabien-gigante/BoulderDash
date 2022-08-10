@@ -414,6 +414,7 @@ class Amoeba(Sprite):
             Boulder.sound_fall.play()
 
 class Portal(Sprite):
+    sound = Sound(":resources:sounds/phaseJump1.wav")
     next_link = None
     def __init__(self, cave: Cave, x: int, y: int) -> None:
        super().__init__(cave, x, y, 2)
@@ -440,6 +441,7 @@ class Portal(Sprite):
 
     def on_destroy(self) -> None:
         # won't be destroyed by entering object, do its magic instead !
+        Portal.sound.play()
         entering = self.cave.at(self.x, self.y) 
         self.cave.set(self.x, self.y, self)
         (entering.x, entering.y) = (self.link.x, self.link.y)
