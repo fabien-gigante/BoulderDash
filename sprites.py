@@ -5,6 +5,7 @@ from typing import Optional, Union
 from boulder_dash import Game, Cave, Player
 
 class Sound(arcade.Sound):
+    # TODO : simplify this entire logic, replace self.player by self.last_played and check if not already played within the same frame (< 1/60 sec)
     def __init__(self, file) -> None: 
         super().__init__(file)
         super().play().delete() # force audio preloading
@@ -22,7 +23,7 @@ class Sound(arcade.Sound):
         self.player = None
 
 class Sprite(arcade.Sprite):
-    TILE_SIZE = 64 # from 16, 64
+    TILE_SIZE = 64 # choose from 16, 64
     TILE_SCALE = Game.TILE_SIZE / TILE_SIZE
     DEFAULT_SPEED = 10 # squares per second
     PRIORITY_HIGH = 0
@@ -132,6 +133,7 @@ class Ore(Pushable):
 
     def can_move(self, ix: int, iy: int)  -> bool: 
         return iy <= 0 and super().can_move(ix, iy)
+    # TODO : remove try_move override once Cave.can_move migrated
     def try_move(self, ix: int, iy: int)  -> bool: 
         return iy <= 0 and super().try_move(ix, iy)
 
@@ -151,12 +153,6 @@ class Ore(Pushable):
 
 class Boulder(Ore):
     def __init__(self, cave: Cave, x: int, y: int) -> None: super().__init__(cave, x, y)
-
-class CrackedBoulder(Boulder):
-    def __init__(self, cave: Cave, x: int, y: int) -> None: super().__init__(cave, x, y)
-    def on_end_fall(self, onto: Sprite) -> None:
-        super().on_end_fall(onto)
-        self.cave.replace(self, Explosion)
 
 class Diamond(Ore):
     sound = Sound(":resources:sounds/coin5.wav")
@@ -180,12 +176,17 @@ class Diamond(Ore):
             self.set_skin(shine)
         super().tick()
 
-class Mineral(Boulder):
-    sound_fall = Diamond.sound_fall
-    def __init__(self, cave: Cave, x: int, y: int) -> None: super().__init__(cave, x, y)
+class CrackedBoulder(Boulder):
+    def __init__(self, cave: Cave, x: int, y: int, type = None) -> None: 
+        super().__init__(cave, x, y)
+        self.crack_type = type if type is not None else Explosion
     def on_end_fall(self, onto: Sprite) -> None:
         super().on_end_fall(onto)
-        self.cave.replace(self, Diamond)
+        self.cave.replace(self, self.crack_type)
+
+class Mineral(CrackedBoulder):
+    sound_fall = Diamond.sound_fall
+    def __init__(self, cave: Cave, x: int, y: int) -> None: super().__init__(cave, x, y, Diamond)
 
 class Crate(Pushable):
     def __init__(self, cave: Cave, x: int, y: int) -> None: super().__init__(cave, x, y)
