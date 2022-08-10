@@ -114,11 +114,13 @@ class Cave:
         for sprite in self.sprites(cond): self.replace(sprite, by)
 
     def can_move(self, sprite: 'Sprite', x: int , y: int) -> bool:
+        # TODO : rather ix,iy as arguments ?
         if not self.within_bounds(x,y): return False
         tile = self.at(x,y)
         return tile is None or tile.can_be_occupied(sprite)
 
     def try_move(self, sprite: 'Sprite', x: int , y: int) -> bool:
+        # TODO : rather ix,iy as arguments ? rather call Sprite.can_move (to allow direct overrides) ?
         if not self.can_move(sprite, x, y): return False
         if (sprite.x, sprite.y) == (x,y): return True
         self.set(sprite.x, sprite.y, None)
@@ -134,9 +136,11 @@ class Cave:
                 if tile is not None and tile.is_kind_of(cond): yield tile
 
     def draw(self) -> None:
+        # TODO : move the SpriteList logic to CaveView
         self.sprite_list.draw()
 
     def update_sprite_list(self) -> None:
+        # TODO : move the SpriteList logic to CaveView
         cave_sprites = { *self.sprites() }
         for s in self.sprite_list:
            if not s in cave_sprites: self.sprite_list.remove(s)
