@@ -1,6 +1,6 @@
 # Boulder Dash
 
-Prototype de clone de Boulder Dash
+Clone du jeu Boulder Dash, avec quelques adaptations
 
 ## Le jeu
 
