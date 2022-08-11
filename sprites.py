@@ -359,25 +359,23 @@ class Insect(Creature):
         self.try_wander()
 
 class Firefly(Insect):
-    ''' Simplest kind of insect. Wanders counter-clockwise. '''
+    ''' Simplest kind of insect. Wanders clockwise. '''
     def __init__(self, cave: Cave, x: int, y: int) -> None: 
         super().__init__(cave, x, y)
         self.dir = (-1, 0)
 
     def try_wander(self) -> bool:
         (ix,iy) = self.dir
-        # always go left
         return self.try_move(-iy, ix) or self.try_move(ix, iy) or self.try_move(iy, -ix) or self.try_move(-ix, -iy) or self.try_wait()
 
 class Butterfly(Insect):
-    ''' An insect that explodes in diamonds. Wanders clockwise. '''
+    ''' An insect that explodes in diamonds. Wanders counter-clockwise. '''
     def __init__(self, cave: Cave, x: int, y: int) -> None:
         super().__init__(cave, x, y)
         self.dir = (0, -1)
 
     def try_wander(self) -> bool:
         (ix,iy) = self.dir
-        # always go right
         return self.try_move(iy, -ix) or self.try_move(ix, iy) or self.try_move(-iy, ix) or self.try_move(-ix, -iy) or self.try_wait()
 
     def on_destroy(self) -> None: self.cave.explode(self.x, self.y, Diamond)
