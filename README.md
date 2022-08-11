@@ -1,19 +1,19 @@
 # Boulder Dash
 
-Clone du jeu Boulder Dash, avec quelques adaptations
+Clone of the Boulder Dash game, with some tweaks...
 
-## Le jeu
+## The game
 
-Site officiel : https://boulder-dash.com/  
-Règles originales complètes : https://www.elmerproductions.com/sp/peterb/
+Official site : https://boulder-dash.com/  
+Original ruleset : https://www.elmerproductions.com/sp/peterb/
 
-![Capture d'écran](doc/screenshot1.png)
+![Screenshot](doc/screenshot1.png)
 
-L'adaptation inclut quelques éléments spéciaux...
+Some special elements are included in custom levels...
 
-![Capture d'écran](doc/screenshot22.png)
+![Screenshot](doc/screenshot22.png)
 
-## Le code
+## Some references
 
-Bibliothèque Arcade : https://api.arcade.academy/en/latest/  
-Code source d'Arcade : 'https://github.com/pythonarcade/arcade
+Arcade library : https://api.arcade.academy/en/latest/  
+Arcade code source : https://github.com/pythonarcade/arcade
