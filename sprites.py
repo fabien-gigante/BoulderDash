@@ -105,11 +105,16 @@ class ExpandingWall(Wall):
 
     def tick(self) -> None:
         self.set_skin(0)
-        for ix in [-1,+1]:
-            if self.neighbor(ix, 0) is None:
-                tile = ExpandingWall(self.cave, self.x+ix, self.y)
+        (x,y) = (self.x, self.y)
+        for ix in [-1, +1]:
+            into = self.neighbor(ix, 0)
+            if isinstance(into, Portal): 
+                (x,y) = (into.link.x, into.link.y)
+                into = into.look_through(ix, 0)
+            if into is None:
+                tile = ExpandingWall(self.cave, x + ix, y)
                 tile.set_skin(2 if ix == -1 else 1)
-                self.cave.set(self.x + ix, self.y, tile)
+                self.cave.set(tile.x, tile.y, tile)
                 Boulder.sound_fall.play()
                 self.try_wait()
 
