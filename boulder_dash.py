@@ -1,13 +1,14 @@
-from ast import Lambda
-import arcade
-import pyglet
-import time
 from typing import Optional, Union, Tuple, Generator
+from collections import namedtuple
+import time
+import pyglet
+import arcade
 from sprites import *
 from caves import *
-from collections import namedtuple
 
 class Player:
+    ''' A player in the Boulder Dash game. Handles controls, score and lifes. '''
+
     ControlKeys = namedtuple('ControlKeys', 'up left down right')
 
     def __init__(self, game: 'Game', id: int = 0) -> None:
@@ -47,6 +48,8 @@ class Player:
         else: self.game.over()
 
 class Cave:
+    ''' The grid of tiles in which the game is played. Manages map loading and sprites updates. '''
+
     WIDTH_MAX = 40
     WIDTH_MIN = 20
     HEIGHT_MAX = 22
@@ -168,6 +171,8 @@ class Cave:
                         if not tile is None: tile.on_destroy()
 
 class CaveView(arcade.View):
+    ''' The main view of the game when in play. Renders the current cave. Manages cameras. '''
+
     def __init__(self, game: 'Game') -> None:
         super().__init__(game)
         self.game = game
@@ -238,6 +243,8 @@ class CaveView(arcade.View):
         #print(f'on_update : {(time.time() - start_time) * 1000} ms')
 
 class Game(arcade.Window):
+    ''' The main Boulder Dash game. Holds the game model. Manages views. Buffers keys and controllers. '''
+
     TILE_SIZE = 40
     WIDTH_TILES = Cave.WIDTH_MIN # Cave.WIDTH_MAX
     HEIGHT_TILES = Cave.HEIGHT_MIN # Cave.HEIGHT_MAX
