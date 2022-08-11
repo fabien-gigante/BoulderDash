@@ -3,7 +3,7 @@ import time
 import math
 import random
 import arcade
-from boulder_dash import Game, Cave, Player, Sound
+from game import Game, Cave, Player, Sound
 
 class Sprite(arcade.Sprite):
     ''' An sprite in the game's cave. Manages skins, positioning, basic movement, timings, and update. '''

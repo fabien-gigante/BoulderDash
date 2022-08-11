@@ -5,7 +5,7 @@
     <ProjectGuid>63c9184a-5974-4a96-8349-0ef05b17d283</ProjectGuid>
     <ProjectHome>
     </ProjectHome>
-    <StartupFile>boulder_dash.py</StartupFile>
+    <StartupFile>game.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -25,9 +25,9 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="boulder_dash.py" />
+    <Compile Include="game.py" />
     <Compile Include="sprites.py" />
-	<Compile Include="caves.py" />
+    <Compile Include="caves.py" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="README.md" />
