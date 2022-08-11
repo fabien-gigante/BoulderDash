@@ -27,80 +27,12 @@
   <ItemGroup>
     <Compile Include="boulder_dash.py" />
     <Compile Include="sprites.py" />
+	<Compile Include="caves.py" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="caves.py">
-      <Publish>True</Publish>
-    </Content>
-    <Content Include="doc\screenshot1.png" />
-    <Content Include="doc\screenshot22.png" />
     <Content Include="README.md" />
-    <Content Include="res\Girl16-0.png" />
-    <Content Include="res\Girl16-1.png" />
-    <Content Include="res\Girl64-0.png" />
-    <Content Include="res\Girl64-1.png" />
-    <Content Include="res\MetalCrate16-0.png" />
-    <Content Include="res\MetalCrate64-0.png" />
-    <Content Include="res\Miner16-1.png" />
-    <Content Include="res\Miner64-1.png" />
-    <Content Include="res\Portal16-0-back.png" />
-    <Content Include="res\Portal16-0.png" />
-    <Content Include="res\Portal16-1-back.png" />
-    <Content Include="res\Portal16-1.png" />
-    <Content Include="res\Portal64-0.png" />
-    <Content Include="res\Portal64-1.png" />
-    <Content Include="res\WoodCrate16-0.png" />
-    <Content Include="res\WoodCrate64-0.png" />
-    <Content Include="res\Amoeba16-0.png" />
-    <Content Include="res\Amoeba64-0.png" />
-    <Content Include="res\Boulder16-0.png" />
-    <Content Include="res\Boulder64-0.png" />
-    <Content Include="res\BrickWall16-0.png" />
-    <Content Include="res\Butterfly16-0.png" />
-    <Content Include="res\Butterfly16-1.png" />
-    <Content Include="res\Butterfly64-0.png" />
-    <Content Include="res\Butterfly64-1.png" />
-    <Content Include="res\CrackedBoulder16-0.png" />
-    <Content Include="res\CrackedBoulder64-0.png" />
-    <Content Include="res\Diamond16-0.png" />
-    <Content Include="res\Diamond16-1.png" />
-    <Content Include="res\Diamond16-2.png" />
-    <Content Include="res\Diamond16-3.png" />
-    <Content Include="res\Diamond64-0.png" />
-    <Content Include="res\Diamond64-1.png" />
-    <Content Include="res\Diamond64-2.png" />
-    <Content Include="res\Diamond64-3.png" />
-    <Content Include="res\Exit16-0.png" />
-    <Content Include="res\Exit16-1.png" />
-    <Content Include="res\Exit64-1.png" />
-    <Content Include="res\ExpandingWall16-0.png" />
-    <Content Include="res\ExpandingWall16-1.png" />
-    <Content Include="res\ExpandingWall64-0.png" />
-    <Content Include="res\ExpandingWall64-1.png" />
-    <Content Include="res\Explosion16-0.png" />
-    <Content Include="res\Firefly16-0.png" />
-    <Content Include="res\Firefly16-1.png" />
-    <Content Include="res\Firefly64-0.png" />
-    <Content Include="res\Exit64-0.png" />
-    <Content Include="res\Explosion64-0.png" />
-    <Content Include="res\Firefly64-1.png" />
-    <Content Include="res\MagicWall16-0.png" />
-    <Content Include="res\MagicWall16-1.png" />
-    <Content Include="res\MagicWall16-2.png" />
-    <Content Include="res\MagicWall64-0.png" />
-    <Content Include="res\MagicWall64-1.png" />
-    <Content Include="res\MagicWall64-2.png" />
-    <Content Include="res\MetalWall16-0.png" />
-    <Content Include="res\MetalWall64-0.png" />
-    <Content Include="res\Miner16-0.png" />
-    <Content Include="res\Miner64-0.png" />
-    <Content Include="res\Mineral16-0.png" />
-    <Content Include="res\Mineral64-0.png" />
-    <Content Include="res\Soil16-0.png" />
-    <Content Include="res\Soil64-0.png" />
-    <Content Include="res\Unknown16-0.png" />
-    <Content Include="res\Unknown64-0.png" />
-    <Content Include="res\BrickWall64-0.png" />
+    <Content Include="doc\*.png" />
+    <Content Include="res\*.png" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="doc\" />
