@@ -1,23 +1,38 @@
 from typing import Optional, Union, Tuple, Generator
 from collections import namedtuple
 import time
+import math
 import pyglet
 import arcade
 from sprites import *
-from caves import *
+from caves import CAVES
+
+class Sound(arcade.Sound):
+    ''' An audio media in the game. Preloaded. Played at moderate volume and at most once per frame (for a given sound). '''
+    VOLUME = 0.5
+    def __init__(self, file) -> None: 
+        super().__init__(file)
+        self.last_played = -math.inf
+        super().play(0).delete() # force audio preloading
+    def play(self, volume = VOLUME, pan: float = 0.0, loop: bool = False, speed: float = 1.0):
+        now = time.time()
+        if (now - self.last_played < 1/60): return
+        self.last_played = now
+        return super().play(volume, pan, loop, speed)
 
 class Player:
     ''' A player in the Boulder Dash game. Handles controls, score and lifes. '''
-
+    SCORE_FOR_LIFE = 100
+    sound = Sound(":resources:sounds/laser1.wav")
     ControlKeys = namedtuple('ControlKeys', 'up left down right')
 
-    def __init__(self, game: 'Game', id: int = 0) -> None:
-        self.game = game ; self.id = id; self.score = 0 ; self.life = 3
+    def __init__(self, game: 'Game', num: int = 0) -> None:
+        self.game = game ; self.num = num; self._score = 0 ; self.life = 3
         self.control_keys = \
-            Player.ControlKeys(arcade.key.UP, arcade.key.LEFT, arcade.key.DOWN, arcade.key.RIGHT) if id == 0 else \
-            Player.ControlKeys(arcade.key.Z, arcade.key.Q, arcade.key.S, arcade.key.D) if id == 1 else \
+            Player.ControlKeys(arcade.key.UP, arcade.key.LEFT, arcade.key.DOWN, arcade.key.RIGHT) if num == 0 else \
+            Player.ControlKeys(arcade.key.Z, arcade.key.Q, arcade.key.S, arcade.key.D) if num == 1 else \
             Player.ControlKeys(arcade.key.I, arcade.key.J, arcade.key.K, arcade.key.L)
-        self.controller = game.controllers[id] if id < len(game.controllers) else None
+        self.controller = game.controllers[num] if num < len(game.controllers) else None
 
     def is_direction(self, ix, iy) -> Tuple[int,int]: 
         return self.is_key_direction(ix, iy) or self.is_ctrl_direction(ix, iy) 
@@ -39,7 +54,17 @@ class Player:
         )
 
     def center_on(self, x, y, speed = 0.1) -> None:
-       if self.id == 0: self.game.center_on(x, y, speed)
+        if self.num == 0: self.game.center_on(x, y, speed)
+
+    @property
+    def score(self) -> int: return self._score
+    @score.setter
+    def score(self, value : int) -> None:
+        n = self._score // Player.SCORE_FOR_LIFE
+        self._score = value
+        if self._score // Player.SCORE_FOR_LIFE > n and self.life < 9:
+            self.life += 1
+            Player.sound.play()
 
     def kill(self) -> None:
         self.life -= 1
@@ -54,13 +79,20 @@ class Cave:
     WIDTH_MIN = 20
     HEIGHT_MAX = 22
     HEIGHT_MIN = 12
+
     IN_PROGRESS = 0
     FAILED = -1
+    NOT_LOADED = -2
     SUCCEEDED = 1
+
     WAIT_STATUS = 0.25 # seconds
 
     def __init__(self, game: "Game") -> None:
         self.game = game
+        self.nb_players = 0 ; self.to_collect = 0 ; self.collected = 0
+        self.status = Cave.NOT_LOADED ; self.wait = 0
+        self.tiles = [] ; self.back_tiles = []
+        self.miner_type = None ; self.height = self.width = 0
         self.next_level(1)
 
     def load(self) -> None:
@@ -83,8 +115,8 @@ class Cave:
             self.tiles.append([])
             for x in range(self.width):
                 key = cave['map'][self.height -1 - y][x]
-                type = types[key] if key in types else Unknown
-                tile = type(self, x, y) if not type is None else None
+                tile_type = types[key] if key in types else Unknown
+                tile = tile_type(self, x, y) if not tile_type is None else None
                 self.tiles[y].append(tile)
         for sprite in self.sprites(): sprite.on_loaded()
         self.game.on_loaded()
@@ -153,21 +185,21 @@ class Cave:
         if self.wait > 0:
             self.wait -= delta_time
             if self.wait <= 0:
-               if self.status == Cave.SUCCEEDED: self.next_level()
-               elif self.status == Cave.FAILED: self.restart_level()
+                if self.status == Cave.SUCCEEDED: self.next_level()
+                elif self.status == Cave.FAILED: self.restart_level()
         for priority in [Sprite.PRIORITY_HIGH, Sprite.PRIORITY_MEDIUM, Sprite.PRIORITY_LOW]:
             for sprite in self.sprites(priority): sprite.on_update(delta_time)
         for update in Sprite.global_updates: update(self)
 
-    def explode(self, cx: int, cy: int, type : Optional[type] = None) -> None:
-        if type is None: type = Explosion
-        type.sound_explosion.play()
+    def explode(self, cx: int, cy: int, tile_type: Optional[type] = None) -> None:
+        if tile_type is None: tile_type = Explosion
+        tile_type.sound_explosion.play()
         for x in range(cx - 1, cx + 2):
             for y in range(cy - 1, cy + 2):
                 if self.within_bounds(x, y):
                     tile = self.at(x, y)
-                    if tile is None or (not isinstance(tile,type) and tile.can_break()):
-                        self.set(x, y, type(self, x, y))
+                    if tile is None or (not isinstance(tile, tile_type) and tile.can_break()):
+                        self.set(x, y, tile_type(self, x, y))
                         if not tile is None: tile.on_destroy()
 
 class CaveView(arcade.View):
@@ -194,7 +226,7 @@ class CaveView(arcade.View):
             self.camera_gui.move_to( ((Game.WIDTH - width)/2, gui_offset))
 
     def center_on(self, x, y, speed = 1) -> None:
-        self.center = (x, y) ; cave = self.game.cave; 
+        self.center = (x, y) ; cave = self.game.cave 
         width = self.window.width ; height = self.window.height
         if width > cave.width * Game.TILE_SIZE:
             cx = (cave.width * Game.TILE_SIZE - width) / 2
@@ -236,7 +268,7 @@ class CaveView(arcade.View):
         self.game.cave.on_update(delta_time)
         cave_sprites = { *self.game.cave.back_sprites(), *self.game.cave.sprites() }
         for s in self.sprite_list:
-           if not s in cave_sprites: self.sprite_list.remove(s)
+            if not s in cave_sprites: self.sprite_list.remove(s)
         for s in cave_sprites:             
             if len(s.sprite_lists) == 0: self.sprite_list.append(s)
         self.sprite_list.sort(key=lambda x: not isinstance(x, BackSprite))
@@ -252,45 +284,49 @@ class Game(arcade.Window):
     HEIGHT = TILE_SIZE * (HEIGHT_TILES + 1)
     TITLE = 'Boulder Dash'
     FONT = 'Kenney High Square'
+    music = Sound(':resources:music/funkyrobot.mp3')
+    sound_over = Sound(':resources:sounds/gameover3.wav')
 
     def __init__(self):
         super().__init__(Game.WIDTH, Game.HEIGHT, Game.TITLE)
         self.set_icon(pyglet.image.load(f'res/Miner{Sprite.TILE_SIZE}-0.png'))
         self.keys = []
-        self.cave = None
+        self.controllers = []
         self.players = []
+        self.cave = None
 
     def reset(self) -> None : self.players = [ Player(self) ]
 
     def setup(self) -> None:
         self.controllers = arcade.get_game_controllers()
         for ctrl in self.controllers: ctrl.open()
-        self.reset() ;  self.cave = Cave(self)
+        self.reset() ; self.cave = Cave(self)
         arcade.set_background_color(arcade.color.BLACK)
         self.show_view(CaveView(self))
+        Game.music.play(0.1, 0, True)
 
     def center_on(self, x, y, speed = 1) -> None:
         if self.current_view is not None:self.current_view.center_on(x, y, speed)
     def on_loaded(self) -> None:
         if self.current_view is not None: self.current_view.on_loaded()
 
-    def on_key_press(self, key, modifiers): 
-        self.keys.append(key)
-        if key == arcade.key.NUM_ADD : self.cave.next_level()
-        elif key == arcade.key.NUM_SUBTRACT : self.cave.next_level(self.cave.level - 1)
-        elif (key == arcade.key.NUM_MULTIPLY or key == arcade.key.F5):
-           self.reset() ; self.cave.restart_level()
-        elif key == arcade.key.NUM_DIVIDE : self.reset() ; self.cave.next_level(1)
+    def on_key_press(self, symbol, modifiers): 
+        self.keys.append(symbol)
+        if symbol == arcade.key.NUM_ADD : self.cave.next_level()
+        elif symbol == arcade.key.NUM_SUBTRACT : self.cave.next_level(self.cave.level - 1)
+        elif (symbol == arcade.key.NUM_MULTIPLY or symbol == arcade.key.F5):
+            self.reset() ; self.cave.restart_level()
+        elif symbol == arcade.key.NUM_DIVIDE : self.reset() ; self.cave.next_level(1)
         elif (
-            (key == arcade.key.ENTER and modifiers & arcade.key.MOD_ALT) or
-            (key == arcade.key.ESCAPE and self.fullscreen) or key == arcade.key.F11
+            (symbol == arcade.key.ENTER and modifiers & arcade.key.MOD_ALT) or
+            (symbol == arcade.key.ESCAPE and self.fullscreen) or symbol == arcade.key.F11
         ): self.set_fullscreen(not self.fullscreen)
 
-    def on_key_release(self, key, modifiers):
-       if key in self.keys: self.keys.remove(key)
+    def on_key_release(self, symbol, modifiers):
+        if symbol in self.keys: self.keys.remove(symbol)
 
     def over(self) -> None:
-        pass # TODO
+        Game.sound_over.play()
 
 def main() -> None:
     Game().setup()

@@ -3,20 +3,7 @@ import time
 import math
 import random
 import arcade
-from boulder_dash import Game, Cave, Player
-
-class Sound(arcade.Sound):
-    ''' An audio media in the game. Preloaded. Played at moderate volume and at most once per frame (for a given sound). '''
-    VOLUME = 0.5
-    def __init__(self, file) -> None: 
-        super().__init__(file)
-        self.last_played = -math.inf
-        super().play(0).delete() # force audio preloading
-    def play(self):
-        now = time.time()
-        if (now - self.last_played < 1/60): return
-        self.last_played = now
-        return super().play(Sound.VOLUME)
+from boulder_dash import Game, Cave, Player, Sound
 
 class Sprite(arcade.Sprite):
     ''' An sprite in the game's cave. Manages skins, positioning, basic movement, timings, and update. '''
@@ -40,8 +27,8 @@ class Sprite(arcade.Sprite):
         self.moved = self.moving = False ; self.priority = Sprite.PRIORITY_MEDIUM
         self.compute_pos()
 
-    def add_skin(self, name: str, id: int, flip_h: bool = False, flip_v: bool = False) -> None: 
-        texture = arcade.load_texture(f'res/{name}{Sprite.TILE_SIZE}-{id}.png', 0,0, Sprite.TILE_SIZE, Sprite.TILE_SIZE, flip_h, flip_v)
+    def add_skin(self, name: str, num: int, flip_h: bool = False, flip_v: bool = False) -> None: 
+        texture = arcade.load_texture(f'res/{name}{Sprite.TILE_SIZE}-{num}.png', 0,0, Sprite.TILE_SIZE, Sprite.TILE_SIZE, flip_h, flip_v)
         self.append_texture(texture)
         self.nb_skins += 1
     def set_skin(self, i: int) -> None: self.skin = i; self.set_texture(i)
@@ -72,7 +59,7 @@ class Sprite(arcade.Sprite):
         self.wait = 1 / self.speed
         return True
 
-    def on_update(self, delta_time) -> None:
+    def on_update(self, delta_time: float = 1/60) -> None:
         if self.wait > 0: 
             self.wait -= delta_time
         else: 
@@ -81,30 +68,28 @@ class Sprite(arcade.Sprite):
             self.moving = self.moved
 
     def tick(self): pass
-    def can_be_occupied(self, by: 'Sprite', ix:int, iy:int) -> bool: return False
-    def on_moved(self, into: Optional['Sprite']) -> None: pass
+    def can_be_occupied(self, _by: 'Sprite', _ix: int, _iy: int) -> bool: return False
+    def on_moved(self, _into: Optional['Sprite']) -> None: pass
     def can_break(self) -> bool:  return True
     def on_destroy(self) -> None: pass
     def on_loaded(self) -> None: pass
 
 class Unknown(Sprite):
     ''' Typically used to represent a sprite not yet implemented. '''
-    def __init__(cave: Cave, x: int, y: int) -> None: super().__init__(cave, x, y)
+    def __init__(self, cave: Cave, x: int, y: int) -> None: super().__init__(cave, x, y)
 
 class Soil(Sprite):
     ''' A soil or dirt sprite that miners can dig through. '''
     sound = Sound(":resources:sounds/rockHit2.wav")
     def __init__(self, cave: Cave, x: int, y: int) -> None: super().__init__(cave, x, y)
-    def can_be_occupied(self, by: Sprite, ix:int, iy:int) -> bool: return isinstance(by, Miner)
+    def can_be_occupied(self, by: Sprite, _ix: int, _iy: int) -> bool: return isinstance(by, Miner)
     def collect(self) -> int : Soil.sound.play() ; return 0
 
 class Wall(Sprite):
     ''' An abstract wall sprite. Blocks movement but breakable by explosions. '''
-    def __init__(self, cave: Cave, x: int, y: int, n: int = 1) -> None: super().__init__(cave, x, y, n)
 
 class BrickWall(Wall):
     ''' A brick wall sprite. '''
-    def __init__(self, cave: Cave, x: int, y: int, n: int = 1) -> None: super().__init__(cave, x, y, n)
 
 class MetalWall(Wall):
     ''' A metal wall sprite. Unbreakable. '''
@@ -132,15 +117,10 @@ class ExpandingWall(Wall):
 class Pushable(Sprite):
     ''' A abstract sprite that can be pushed by miners. '''
     sound = Sound(":resources:sounds/hurt1.wav")
-    def __init__(self, cave: Cave, x: int, y: int, n:int = 1) -> None: 
-        super().__init__(cave, x, y, n)
 
 class Massive(Pushable):
     ''' A abstract sprite subject to gravity. It falls down and rolls off rounded objects. '''
     sound_fall = Sound(":resources:sounds/hurt2.wav")
-
-    def __init__(self, cave: Cave, x: int, y: int, n:int = 1) -> None: 
-        super().__init__(cave, x, y, n)
 
     def can_move(self, ix: int, iy: int)  -> bool: 
         return iy <= 0 and super().can_move(ix, iy)
@@ -148,8 +128,8 @@ class Massive(Pushable):
     def tick(self) -> None:
         if self.try_move(0, -1): return
         elif self.moving: self.end_fall(self.neighbor(0, -1))
-        ix = random.randint(0, 1) * 2 - 1;  # pick a side at random
-        self.try_roll(ix) or self.try_roll(-ix)
+        ix = random.randint(0, 1) * 2 - 1   # pick a side at random
+        _ = self.try_roll(ix) or self.try_roll(-ix)
     
     def end_fall(self, onto: Sprite) -> None:
         type(self).sound_fall.play()
@@ -169,9 +149,9 @@ class Diamond(Massive):
     sound_fall = Sound(":resources:sounds/coin4.wav")
     sound_explosion = Sound(":resources:sounds/secret4.wav")
     def __init__(self, cave: Cave, x: int, y: int) -> None:
-       super().__init__(cave, x, y, 4)
+        super().__init__(cave, x, y, 4)
 
-    def can_be_occupied(self, by: Sprite, ix:int, iy:int) -> bool: return isinstance(by, Miner)
+    def can_be_occupied(self, by: Sprite, _ix: int, _iy: int) -> bool: return isinstance(by, Miner)
     def can_break(self) -> bool:  return False
 
     def collect(self) -> int: 
@@ -188,6 +168,8 @@ class Diamond(Massive):
 
 class CrackedBoulder(Boulder):
     ''' A fragile boulder. Breaks when falling or being hit. '''
+    sound = Sound(":resources:sounds/hit4.wav")
+
     WAIT_CRACK = .125 # sec
     def __init__(self, cave: Cave, x: int, y: int, crack_type = None) -> None: 
         super().__init__(cave, x, y)
@@ -195,6 +177,7 @@ class CrackedBoulder(Boulder):
         self.crack_time = math.inf
         self.crack_type = crack_type if crack_type is not None else Explosion
     def end_fall(self, onto: Sprite) -> None:
+        CrackedBoulder.sound.play()
         super().end_fall(onto)
         self.next_skin()
         self.crack_time = time.time() + CrackedBoulder.WAIT_CRACK 
@@ -215,7 +198,7 @@ class Explosion(Sprite):
     def __init__(self, cave: Cave, x: int, y: int) -> None:
         super().__init__(cave, x, y)
         self.wait = Explosion.WAIT_CLEAR
-    def can_be_occupied(self, by: Sprite, ix:int, iy:int) -> bool: return True
+    def can_be_occupied(self, _by: Sprite, _ix: int, _iy: int) -> bool: return True
     def tick(self) -> None: self.cave.replace(self, None)
 
 class Entry(Sprite):
@@ -228,6 +211,7 @@ class Entry(Sprite):
         self.set_skin(0)
         self.wait = Entry.WAIT_OPEN
         self.player_assigned = False
+        self.player = None
 
     def assign_player(self) -> None:
         if self.cave.nb_players < len(self.cave.game.players):
@@ -237,17 +221,17 @@ class Entry(Sprite):
         else: self.player = None
         self.player_assigned = True
 
-    def on_update(self, delta_time) -> None:
+    def on_update(self, delta_time: float = 1/60) -> None:
         if not self.player_assigned: self.assign_player()
         super().on_update(delta_time)
 
     def tick(self) -> None:
         if self.player is not None and self.player.life > 0: 
             Entry.sound.play()
-            self.cave.replace(self, self.cave.miner_type(self.cave, self.x, self.y, self.player)); 
+            self.cave.replace(self, self.cave.miner_type(self.cave, self.x, self.y, self.player)) 
         else:
-            Explosion.sound_explosion.play()
-            self.cave.replace(self, Explosion); 
+            CrackedBoulder.sound.play()
+            self.cave.replace(self, Explosion)
 
 class Exit(Sprite):
     ''' A door that miners must use the exit the cave when completed. '''
@@ -261,7 +245,7 @@ class Exit(Sprite):
             Entry.sound.play()
             self.opened = True ; self.set_skin(1)
 
-    def can_be_occupied(self, by: Sprite, ix:int, iy:int) -> bool: 
+    def can_be_occupied(self, by: Sprite, _ix: int, _iy: int) -> bool: 
         return isinstance(by, Miner) and self.opened
     def can_break(self) -> bool:  return False
 
@@ -271,10 +255,7 @@ class Exit(Sprite):
 
 class Creature(Sprite):
     ''' A creature in the cave, either miner or insect. Crushed by falling massive sprites. Explodes when dying. '''
-    def __init__(self, cave: Cave, x: int, y: int, n: int = 1) -> None:
-       super().__init__(cave, x, y, n)
-
-    def can_be_occupied(self, by: Sprite, ix: int, iy: int) -> bool: 
+    def can_be_occupied(self, by: Sprite, _ix: int, _iy: int) -> bool: 
         return isinstance(by, Massive) and by.moving
 
     def on_destroy(self) -> None: self.cave.explode(self.x, self.y)
@@ -284,34 +265,32 @@ class Miner(Creature):
 
     def __init__(self, cave: Cave, x: int, y: int, player: Player) -> None:
         super().__init__(cave, x, y, 2)
-        self.set_skin(player.id % self.nb_skins)
+        self.set_skin(player.num % self.nb_skins)
         self.pushing = None
         self.player = player
         self.priority = Sprite.PRIORITY_HIGH
 
     def can_be_occupied(self, by: Sprite, ix:int, iy:int) -> bool:
-        return ( 
-            self.cave.status == Cave.IN_PROGRESS and
-            (super().can_be_occupied(by, ix, iy) or isinstance(by, Insect))
-        )
+        if self.cave.status != Cave.IN_PROGRESS: return False
+        return super().can_be_occupied(by, ix, iy) or isinstance(by, Insect)
 
     def on_moved(self, into: Optional[Sprite]) -> None:
         if isinstance(into, Diamond) or isinstance(into, Soil):
             self.player.score += into.collect()
         self.pushing = None
 
-    def on_update(self, delta_time) -> None:
+    def on_update(self, delta_time: float = 1/60) -> None:
         super().on_update(delta_time)
         if self.moved: self.player.center_on(self.center_x, self.center_y)
 
     def tick(self) -> None:
         if self.cave.status != Cave.IN_PROGRESS: return
-        for dir in [(-1,0),(+1,0),(0,-1),(0,+1)]:
-            if self.player.is_direction(*dir):
-                if self.try_move(*dir): return
-        for dir in [(-1,0),(+1,0),(0,-1),(0,+1)]:
-            if self.player.is_direction(*dir):
-                if self.try_push(*dir): return
+        for direction in [(-1,0),(+1,0),(0,-1),(0,+1)]:
+            if self.player.is_direction(*direction):
+                if self.try_move(*direction): return
+        for direction in [(-1,0),(+1,0),(0,-1),(0,+1)]:
+            if self.player.is_direction(*direction):
+                if self.try_push(*direction): return
 
     def try_push(self, ix:int, iy:int) -> bool:
         pushed = self.neighbor(ix, iy)
@@ -323,7 +302,7 @@ class Miner(Creature):
                     return self.try_move(ix, iy)
             else:
                 self.dir = (ix, iy)
-                self.pushing = self.dir;
+                self.pushing = self.dir
                 self.try_wait()
         return False
 
@@ -333,21 +312,17 @@ class Miner(Creature):
 
 class Girl(Miner):
     ''' A miner with a different skin... '''
-    def __init__(self, cave: Cave, x: int, y: int, player: Player) -> None: super().__init__(cave, x, y, player)
 
 class Insect(Creature):
     ''' An abstract unfriendly creature in the cave. Wanders around. Kills miners. '''
     def __init__(self, cave: Cave, x: int, y: int) -> None:
-        super().__init__(cave, x, y, 2)
+        super().__init__(cave, x, y)
         self.speed /= 2
         self.priority = Sprite.PRIORITY_LOW
 
-    def can_be_occupied(self, by: Sprite, ix:int, iy:int) -> bool: 
-        return isinstance(by, Massive) or isinstance(by, Miner)
+    def can_be_occupied(self, by: Sprite, ix: int, iy: int) -> bool: 
+        return super().can_be_occupied(by, ix, iy) or isinstance(by, Miner)
     
-    def on_moved(self, into: Optional[Sprite]) -> None:
-        if isinstance(into, Amoeba): self.cave.replace(self, None)
-
     def try_wander(self) -> bool: pass
     
     def tick(self) -> None:
@@ -383,14 +358,14 @@ class Butterfly(Insect):
 class MagicWall(BrickWall):
     ''' An enchanted brick wall. A boulder or diamond that hits the wall gets changed into a diamond or boulder respectively, and falls through. '''
     def __init__(self, cave: Cave, x: int, y: int) -> None:
-       super().__init__(cave, x, y, 3)
-       self.add_skin(BrickWall.__name__, 0)
+        super().__init__(cave, x, y, 3)
+        self.add_skin(BrickWall.__name__, 0)
 
     def tick(self) -> None:
         if random.randint(0, 6) == 0: self.set_skin(random.randint(0, self.nb_skins - 1))
         super().tick()
 
-    def can_be_occupied(self, by: 'Sprite', ix:int, iy:int) -> bool:
+    def can_be_occupied(self, by: 'Sprite', _ix: int, _iy: int) -> bool:
         return isinstance(by, Massive) and by.moving
 
     def on_destroy(self) -> None:
@@ -427,7 +402,11 @@ class Amoeba(Sprite):
                     self.cave.set(x, y, Amoeba(self.cave, x, y))
         self.try_wait()
 
-    def can_be_occupied(self, by: Sprite, ix:int, iy:int) -> bool: return isinstance(by, Insect)
+    def can_be_occupied(self, by: Sprite, _ix:int, _iy:int) -> bool: return isinstance(by, Insect)
+
+    def on_destroy(self) -> None:
+        insect = self.cave.at(self.x, self.y)
+        if isinstance(insect, Insect): self.cave.replace(insect, Amoeba)
 
     @staticmethod
     def on_global_update(cave: Cave) -> bool:
@@ -446,15 +425,15 @@ class Portal(Sprite):
     sound = Sound(":resources:sounds/phaseJump1.wav")
     next_link = None
     def __init__(self, cave: Cave, x: int, y: int) -> None:
-       super().__init__(cave, x, y, 2)
-       if Portal.next_link is None:
-          Portal.next_link = self
-          self.link = None
-       else:
-         self.set_skin(1)
-         self.link = Portal.next_link
-         Portal.next_link.link = self
-         Portal.next_link = None
+        super().__init__(cave, x, y, 2)
+        if Portal.next_link is None:
+            Portal.next_link = self
+            self.link = None
+        else:
+            self.set_skin(1)
+            self.link = Portal.next_link
+            Portal.next_link.link = self
+            Portal.next_link = None
 
     def can_break(self) -> bool:  return False
 
@@ -501,20 +480,17 @@ Sprite.global_updates.append(Crate.on_global_update)
 
 class WoodCrate(Crate):
     ''' A fragile wodden crate. Explodes when hit. '''
-    def __init__(self, cave: Cave, x: int, y: int) -> None: super().__init__(cave, x, y)
-    def can_be_occupied(self, by: Sprite, ix: int, iy: int) -> bool: 
+    def can_be_occupied(self, by: Sprite, _ix: int, _iy: int) -> bool: 
         return isinstance(by, Massive) and by.moving
     def on_destroy(self) -> None:
-       if not self.solved: self.cave.explode(self.x, self.y)
+        if not self.solved: self.cave.explode(self.x, self.y)
 
 class MetalCrate(Crate):
     ''' A metal crate. Unbreakable. '''
-    def __init__(self, cave: Cave, x: int, y: int) -> None: super().__init__(cave, x, y)
     def can_break(self) -> bool:  return False
 
 class BackSprite(Sprite):
     ''' A static background tile. Lies on the floor, below normal plates. '''
-    def __init__(self, cave: Cave, x: int, y: int) -> None: super().__init__(cave, x, y)
     def on_loaded(self) -> None:
         self.cave.replace(self, None)
         self.cave.back_tiles[self.y][self.x] = self
@@ -523,5 +499,4 @@ class BackSprite(Sprite):
 
 class CrateTarget(BackSprite):
     ''' A background tile representing a target position for a crate. Crates must be placed on those tiles. '''
-    def __init__(self, cave: Cave, x: int, y: int) -> None: super().__init__(cave, x, y)
     def is_placed(self) -> bool:return isinstance(self.front(), Crate)
