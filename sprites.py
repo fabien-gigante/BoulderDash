@@ -93,7 +93,6 @@ class BrickWall(Wall):
 
 class MetalWall(Wall):
     ''' A metal wall sprite. Unbreakable. '''
-    def __init__(self, cave: Cave, x: int, y: int) -> None: super().__init__(cave, x, y)
     def can_break(self) -> bool:  return False
 
 class ExpandingWall(Wall):
@@ -115,11 +114,11 @@ class ExpandingWall(Wall):
                 self.try_wait()
 
 class Pushable(Sprite):
-    ''' A abstract sprite that can be pushed by miners. '''
+    ''' An abstract sprite that can be pushed by miners. '''
     sound = Sound(":resources:sounds/hurt1.wav")
 
 class Massive(Pushable):
-    ''' A abstract sprite subject to gravity. It falls down and rolls off rounded objects. '''
+    ''' An abstract sprite subject to gravity. It falls down and rolls off rounded objects. '''
     sound_fall = Sound(":resources:sounds/hurt2.wav")
 
     def can_move(self, ix: int, iy: int)  -> bool: 
@@ -370,7 +369,7 @@ class MagicWall(BrickWall):
 
     def on_destroy(self) -> None:
         # won't be destroyed by falling rocks, do its magic instead !
-        rock = self.cave.at(self.x, self.y)
+        rock = self.neighbor(0, 0)
         if isinstance(rock, Massive): 
             if isinstance(rock, Boulder): rock = Diamond(self.cave, self.x, self.y)
             elif isinstance(rock, Diamond): rock = Boulder(self.cave, self.x, self.y) 
@@ -405,7 +404,7 @@ class Amoeba(Sprite):
     def can_be_occupied(self, by: Sprite, _ix:int, _iy:int) -> bool: return isinstance(by, Insect)
 
     def on_destroy(self) -> None:
-        insect = self.cave.at(self.x, self.y)
+        insect = self.neighbor(0, 0)
         if isinstance(insect, Insect): self.cave.replace(insect, Amoeba)
 
     @staticmethod
@@ -421,7 +420,7 @@ class Amoeba(Sprite):
 Sprite.global_updates.append(Amoeba.on_global_update)
 
 class Portal(Sprite):
-    ''' A gate sprite that allows teleporting. Work in pairs. Objects can fall or be pushed through portals. Unbreakable. '''
+    ''' A gate sprite that allows teleporting. Works in pairs. Objects can fall or be pushed through portals. Unbreakable. '''
     sound = Sound(":resources:sounds/phaseJump1.wav")
     next_link = None
     def __init__(self, cave: Cave, x: int, y: int) -> None:
@@ -438,7 +437,7 @@ class Portal(Sprite):
     def can_break(self) -> bool:  return False
 
     def look_through(self, ix:int, iy:int) -> Optional[Sprite]:
-        return self.cave.at(self.link.x + ix, self.link.y + iy)
+        return self.link.neighbor(ix, iy)
 
     def can_be_occupied(self, by: 'Sprite', ix:int, iy:int) -> bool: 
         (x,y) = (by.x, by.y)
@@ -450,7 +449,7 @@ class Portal(Sprite):
     def on_destroy(self) -> None:
         # won't be destroyed by entering object, do its magic instead !
         Portal.sound.play()
-        entering = self.cave.at(self.x, self.y) 
+        entering = self.neighbor(0, 0) 
         self.cave.set(self.x, self.y, self)
         (entering.x, entering.y) = (self.link.x, self.link.y)
         if not entering.try_move(*entering.dir):
@@ -470,8 +469,8 @@ class Crate(Pushable):
     @staticmethod
     def on_global_update(cave: Cave) -> bool:
         targets = [*cave.back_sprites(CrateTarget)]
-        if len(targets) > 0 and all(isinstance(target.front(), Crate) for target in targets):
-            for crate in (target.front() for target in targets):
+        if len(targets) > 0 and all(isinstance(target.neighbor(0, 0), Crate) for target in targets):
+            for crate in (target.neighbor(0, 0) for target in targets):
                 crate.solved = True
                 cave.replace(crate, Diamond)
             Diamond.sound_explosion.play()
@@ -494,9 +493,7 @@ class BackSprite(Sprite):
     def on_loaded(self) -> None:
         self.cave.replace(self, None)
         self.cave.back_tiles[self.y][self.x] = self
-    def front(self) -> Optional[Sprite]:
-        return self.cave.at(self.x,self.y)
 
 class CrateTarget(BackSprite):
     ''' A background tile representing a target position for a crate. Crates must be placed on those tiles. '''
-    def is_placed(self) -> bool:return isinstance(self.front(), Crate)
+    def is_placed(self) -> bool:return isinstance(self.neighbor(0, 0), Crate)

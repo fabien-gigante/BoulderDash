@@ -365,3 +365,4 @@ FodyWeavers.xsd
 # Nuitka builds
 /boulder_dash.build
 /boulder_dash.cmd
+/run.lnk
