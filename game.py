@@ -266,13 +266,11 @@ class CaveView(arcade.View):
         self.print( 5, 3, 'LIFE')  ; self.print( 5, -3, f'{self.game.players[0].life:01}')
         self.print( 9, 5, 'GOAL')  ; self.print( 9, -5, f'{self.game.cave.collected:02}/{self.game.cave.to_collect:02}')
         self.print(15, 5, 'SCORE') ; self.print(15, -5, f'{self.game.players[0].score:04}')
-
         if self.game.cave.status == Cave.NOT_LOADED: self.notify("LOADING", arcade.color.GRULLO)
         elif self.game.cave.status == Cave.STARTING: self.notify("GET READY", arcade.color.BANANA_YELLOW)
         elif self.game.cave.status == Cave.SUCCEEDED: self.notify("WELL DONE", arcade.color.DARK_PASTEL_GREEN)
         elif self.game.cave.status == Cave.FAILED: self.notify("TRY AGAIN", arcade.color.CADMIUM_ORANGE)
-        elif self.game.cave.status == Cave.GAME_OVER: self.notify("GAME OVER", arcade.color.CANDY_APPLE_RED)
-
+        elif self.game.cave.status == Cave.GAME_OVER: self.notify("GAME OVER", arcade.color.FERRARI_RED)
         #print(f'on_draw : {(time.time() - start_time) * 1000} ms')
 
     def on_loaded(self) -> None:
@@ -309,6 +307,7 @@ class Game(arcade.Window):
         self.controllers = []
         self.players = []
         self.cave = None
+        self.music_player = None
 
     def create_players(self, nb_players: Optional[int] = None) -> None : 
         if nb_players is None: nb_players = len(self.players)
@@ -322,7 +321,7 @@ class Game(arcade.Window):
         self.create_players() ; self.cave = Cave(self)
         arcade.set_background_color(arcade.color.BLACK)
         self.show_view(CaveView(self))
-        Game.music.play(0.1, 0, True)
+        self.music_player = Game.music.play(0.1, 0, True)
 
     def center_on(self, x, y, speed = 1) -> None:
         if self.current_view is not None:self.current_view.center_on(x, y, speed)
@@ -339,6 +338,9 @@ class Game(arcade.Window):
             self.create_players(len(self.players) % 4 + 1) ; self.cave.restart_level()
         elif (symbol == arcade.key.ENTER or symbol == arcade.key.F11 or (symbol == arcade.key.ESCAPE and self.fullscreen) ):
            self.set_fullscreen(not self.fullscreen)
+        elif symbol == arcade.key.F9 and self.music_player is not None:
+            if self.music_player.playing: self.music_player.pause()
+            else: self.music_player.play()
 
     def on_key_release(self, symbol, modifiers):
         if symbol in self.keys: self.keys.remove(symbol)
