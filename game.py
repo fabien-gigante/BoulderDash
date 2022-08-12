@@ -54,9 +54,6 @@ class Player:
             self.controller.x > +.5 and (ix,iy) == (+1,0)
         )
 
-    def center_on(self, x, y, speed = 0.1) -> None:
-        if self.num == 0: self.game.center_on(x, y, speed)
-
     @property
     def score(self) -> int: return self._score
     @score.setter
@@ -296,12 +293,16 @@ class Game(arcade.Window):
         self.players = []
         self.cave = None
 
-    def reset(self) -> None : self.players = [ Player(self, i) for i in range(1) ]
+    def create_players(self, nb_players: Optional[int] = None) -> None : 
+        if nb_players is None: nb_players = len(self.players)
+        if nb_players < 1: nb_players = 1
+        if nb_players > 4: nb_players = 4
+        self.players = [ Player(self, i) for i in range(nb_players) ]
     
     def setup(self) -> None:
         self.controllers = arcade.get_game_controllers()
         for ctrl in self.controllers: ctrl.open()
-        self.reset() ; self.cave = Cave(self)
+        self.create_players() ; self.cave = Cave(self)
         arcade.set_background_color(arcade.color.BLACK)
         self.show_view(CaveView(self))
         Game.music.play(0.1, 0, True)
@@ -316,8 +317,9 @@ class Game(arcade.Window):
         if symbol == arcade.key.NUM_ADD : self.cave.next_level()
         elif symbol == arcade.key.NUM_SUBTRACT : self.cave.next_level(self.cave.level - 1)
         elif (symbol == arcade.key.NUM_MULTIPLY or symbol == arcade.key.F5):
-            self.reset() ; self.cave.restart_level()
-        elif symbol == arcade.key.NUM_DIVIDE : self.reset() ; self.cave.next_level(1)
+            self.create_players() ; self.cave.restart_level()
+        elif symbol == arcade.key.NUM_DIVIDE : 
+            self.create_players(len(self.players) % 4 + 1) ; self.cave.restart_level()
         elif (symbol == arcade.key.ENTER or symbol == arcade.key.F11 or (symbol == arcade.key.ESCAPE and self.fullscreen) ):
            self.set_fullscreen(not self.fullscreen)
 

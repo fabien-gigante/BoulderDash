@@ -38,6 +38,9 @@ class Sprite(arcade.Sprite):
         self.center_x = Sprite.TILE_SIZE * Sprite.TILE_SCALE * (self.x + 0.5)
         self.center_y = Sprite.TILE_SIZE * Sprite.TILE_SCALE * (self.y + 0.5)
 
+    def focus(self, speed = 1) -> None:
+        self.cave.game.center_on(self.center_x, self.center_y, speed)
+
     def neighbor(self, ix:int, iy:int) -> Optional['Sprite'] :
         return self.cave.at(self.x + ix, self.y + iy)
 
@@ -217,9 +220,7 @@ class Entry(Sprite):
         self.once = False
 
     def on_update(self, delta_time: float = 1/60) -> None:
-        if not self.once: 
-            self.cave.game.center_on(self.center_x, self.center_y, 1)
-            self.once = True
+        if not self.once: self.focus() ; self.once = True
         super().on_update(delta_time)
 
     def can_be_occupied(self, by: Sprite, _ix: int, _iy: int) -> bool: return isinstance(by, Miner)
@@ -266,6 +267,7 @@ class Creature(Sprite):
 
 class Miner(Creature):
     ''' Main protagonist in the cave. Controled by a player. Can push the pushable sprites. '''
+    CAMERA_SPEED = 0.02
 
     def __init__(self, cave: Cave, x: int, y: int, player: Player) -> None:
         super().__init__(cave, x, y, 4)
@@ -283,9 +285,10 @@ class Miner(Creature):
             self.player.score += into.collect()
         self.pushing = None
 
+    def focus(self, speed = CAMERA_SPEED) -> None: super().focus(speed)
     def on_update(self, delta_time: float = 1/60) -> None:
         super().on_update(delta_time)
-        if self.moved: self.player.center_on(self.center_x, self.center_y)
+        if self.moved: self.focus()
 
     def tick(self) -> None:
         if self.cave.status != Cave.IN_PROGRESS: return

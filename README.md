@@ -17,3 +17,4 @@ Some special elements are included in custom levels...
 
 Arcade library : https://api.arcade.academy/en/latest/  
 Arcade code source : https://github.com/pythonarcade/arcade
+xBRZ upscaler : http://sourceforge.net/projects/xbrz/ 
