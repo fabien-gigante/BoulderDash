@@ -68,7 +68,9 @@ class Player:
         self.life -= 1
         if any(p.life > 0 for p in self.game.players): 
             self.game.cave.set_status(Cave.FAILED)
-        else: self.game.over()
+        else: 
+            self.game.cave.set_status(Cave.GAME_OVER)
+            self.game.over()
 
 class Cave:
     ''' The grid of tiles in which the game is played. Manages map loading and sprites updates. '''
@@ -78,12 +80,14 @@ class Cave:
     HEIGHT_MAX = 22
     HEIGHT_MIN = 12
 
-    IN_PROGRESS = 0
-    FAILED = -1
-    NOT_LOADED = -2
-    SUCCEEDED = 1
+    STARTING = 0
+    IN_PROGRESS = 1
+    SUCCEEDED = 2
+    NOT_LOADED = -1
+    FAILED = -2
+    GAME_OVER = -3
 
-    WAIT_STATUS = 0.25 # seconds
+    WAIT_STATUS = 0.75 # seconds
 
     def __init__(self, game: "Game") -> None:
         self.game = game
@@ -101,7 +105,8 @@ class Cave:
            '.': Soil, ' ': None, '_': None 
         }
         self.to_collect = 0 ; self.collected = 0
-        self.status = Cave.IN_PROGRESS ; self.wait = 0
+        if self.status != Cave.GAME_OVER: self.status = Cave.STARTING    
+        self.wait = 0
         self.tiles = [] ; self.back_tiles = []
         cave = CAVES[self.level - 1]
         self.miner_type = globals()[cave['miner']] if 'miner' in cave else Miner
@@ -242,20 +247,32 @@ class CaveView(arcade.View):
 
     def print(self, x: int, w: int, text: str) -> None:
         (color, align, w) = (arcade.color.GRULLO, 'left', w) if w >= 0 else (arcade.color.DARK_PASTEL_GREEN, 'right', -w)
-        y = self.window.height - 7/8 * Game.TILE_SIZE
-        arcade.draw_text(text, x*Game.TILE_SIZE, y, color, Game.TILE_SIZE, w * Game.TILE_SIZE, align, Game.FONT)
+        y = self.window.height - Game.TILE_SIZE * 17/16
+        arcade.draw_text(text, x*Game.TILE_SIZE, y, color, Game.TILE_SIZE, w * Game.TILE_SIZE, align, Game.FONT, anchor_y = 'bottom')
+
+    def notify(self, text: str, color) -> None:
+        arcade.draw_lrtb_rectangle_filled(Game.WIDTH/3, 2/3*Game.WIDTH, self.window.height/2 + Game.TILE_SIZE, self.window.height/2 - Game.TILE_SIZE, (0,0,0,128))
+        arcade.draw_lrtb_rectangle_outline(Game.WIDTH/3, 2/3*Game.WIDTH, self.window.height/2 + Game.TILE_SIZE, self.window.height/2 - Game.TILE_SIZE, arcade.color.GRULLO, Game.TILE_SIZE/16)
+        arcade.draw_text(text, 0, self.window.height/2 +Game.TILE_SIZE/16, color, Game.TILE_SIZE, Game.WIDTH, 'center', Game.FONT, anchor_y = 'center')
 
     def on_draw(self) -> None:
         #start_time = time.time()
         self.camera.use()
         self.clear()
-        self.sprite_list.draw() # pixelated = True
+        self.sprite_list.draw()
         self.camera_gui.use()
         arcade.draw_lrtb_rectangle_filled(0, self.window.width, self.window.height, self.window.height - Game.TILE_SIZE, (0,0,0,192))
         self.print( 0, 4, 'LEVEL') ; self.print( 0, -4, f'{self.game.cave.level:02}')
         self.print( 5, 3, 'LIFE')  ; self.print( 5, -3, f'{self.game.players[0].life:01}')
         self.print( 9, 5, 'GOAL')  ; self.print( 9, -5, f'{self.game.cave.collected:02}/{self.game.cave.to_collect:02}')
         self.print(15, 5, 'SCORE') ; self.print(15, -5, f'{self.game.players[0].score:04}')
+
+        if self.game.cave.status == Cave.NOT_LOADED: self.notify("LOADING", arcade.color.GRULLO)
+        elif self.game.cave.status == Cave.STARTING: self.notify("GET READY", arcade.color.BANANA_YELLOW)
+        elif self.game.cave.status == Cave.SUCCEEDED: self.notify("WELL DONE", arcade.color.DARK_PASTEL_GREEN)
+        elif self.game.cave.status == Cave.FAILED: self.notify("TRY AGAIN", arcade.color.CADMIUM_ORANGE)
+        elif self.game.cave.status == Cave.GAME_OVER: self.notify("GAME OVER", arcade.color.CANDY_APPLE_RED)
+
         #print(f'on_draw : {(time.time() - start_time) * 1000} ms')
 
     def on_loaded(self) -> None:
@@ -318,7 +335,7 @@ class Game(arcade.Window):
         elif symbol == arcade.key.NUM_SUBTRACT : self.cave.next_level(self.cave.level - 1)
         elif (symbol == arcade.key.NUM_MULTIPLY or symbol == arcade.key.F5):
             self.create_players() ; self.cave.restart_level()
-        elif symbol == arcade.key.NUM_DIVIDE : 
+        elif (symbol == arcade.key.NUM_DIVIDE  or symbol == arcade.key.F3): 
             self.create_players(len(self.players) % 4 + 1) ; self.cave.restart_level()
         elif (symbol == arcade.key.ENTER or symbol == arcade.key.F11 or (symbol == arcade.key.ESCAPE and self.fullscreen) ):
            self.set_fullscreen(not self.fullscreen)

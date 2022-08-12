@@ -232,6 +232,7 @@ class Entry(Sprite):
                 for direction in [(0,0),(-1,0),(+1,0),(0,+1),(0,-1),(-1,+1),(+1,+1),(-1,-1),(+1,-1)]:
                     if miner.try_move(*direction):
                         Entry.sound.play()
+                        self.cave.set_status(Cave.IN_PROGRESS)
                         break
         if self.neighbor(0,0) is self:
             CrackedBoulder.sound.play()
