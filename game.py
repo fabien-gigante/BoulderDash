@@ -82,7 +82,8 @@ class Cave:
 
     STARTING = 0
     IN_PROGRESS = 1
-    SUCCEEDED = 2
+    PAUSED = 2
+    SUCCEEDED = 3
     NOT_LOADED = -1
     FAILED = -2
     GAME_OVER = -3
@@ -135,6 +136,10 @@ class Cave:
     def is_complete(self) -> bool:
         return self.collected >= self.to_collect
     
+    def pause(self) -> None:
+        if self.status == Cave.IN_PROGRESS: self.status = Cave.PAUSED;
+        elif self.status == Cave.PAUSED: self.status = Cave.IN_PROGRESS;
+
     def set_status(self, status) -> None:
         self.status = status
         self.wait = Cave.WAIT_STATUS
@@ -185,6 +190,7 @@ class Cave:
                 if tile is not None and tile.is_kind_of(cond): yield tile
 
     def on_update(self, delta_time) -> None:
+        if self.status == Cave.PAUSED: return
         if self.wait > 0:
             self.wait -= delta_time
             if self.wait <= 0:
@@ -267,6 +273,7 @@ class CaveView(arcade.View):
         self.print( 9, 5, 'GOAL')  ; self.print( 9, -5, f'{self.game.cave.collected:02}/{self.game.cave.to_collect:02}')
         self.print(15, 5, 'SCORE') ; self.print(15, -5, f'{self.game.players[0].score:04}')
         if self.game.cave.status == Cave.NOT_LOADED: self.notify("LOADING", arcade.color.GRULLO)
+        elif self.game.cave.status == Cave.PAUSED: self.notify("PAUSED", arcade.color.GRULLO)
         elif self.game.cave.status == Cave.STARTING: self.notify("GET READY", arcade.color.BANANA_YELLOW)
         elif self.game.cave.status == Cave.SUCCEEDED: self.notify("WELL DONE", arcade.color.DARK_PASTEL_GREEN)
         elif self.game.cave.status == Cave.FAILED: self.notify("TRY AGAIN", arcade.color.CADMIUM_ORANGE)
@@ -321,10 +328,23 @@ class Game(arcade.Window):
         self.create_players() ; self.cave = Cave(self)
         arcade.set_background_color(arcade.color.BLACK)
         self.show_view(CaveView(self))
-        self.music_player = Game.music.play(0.1, 0, True)
+        self.toggle_music()
+    
+    def toggle_music(self) -> None:
+        if self.music_player == None: 
+            self.music_player = Game.music.play(0.1, 0, True)
+            if self.cave.status == Cave.PAUSED: self.music_player.pause()
+        else: self.music_player.delete() ; self.music_player = None;
+
+    def pause(self) -> None:
+        self.cave.pause();
+        if self.music_player != None:
+            if self.cave.status == Cave.PAUSED: self.music_player.pause()
+            else: self.music_player.play()
 
     def center_on(self, x, y, speed = 1) -> None:
         if self.current_view is not None:self.current_view.center_on(x, y, speed)
+
     def on_loaded(self) -> None:
         if self.current_view is not None: self.current_view.on_loaded()
 
@@ -338,9 +358,8 @@ class Game(arcade.Window):
             self.create_players(len(self.players) % 4 + 1) ; self.cave.restart_level()
         elif (symbol == arcade.key.ENTER or symbol == arcade.key.F11 or (symbol == arcade.key.ESCAPE and self.fullscreen) ):
            self.set_fullscreen(not self.fullscreen)
-        elif symbol == arcade.key.F9 and self.music_player is not None:
-            if self.music_player.playing: self.music_player.pause()
-            else: self.music_player.play()
+        elif symbol == arcade.key.F9: self.toggle_music()
+        elif symbol == arcade.key.SPACE: self.pause()
 
     def on_key_release(self, symbol, modifiers):
         if symbol in self.keys: self.keys.remove(symbol)
