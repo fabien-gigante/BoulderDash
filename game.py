@@ -1,4 +1,5 @@
-from typing import Optional, Union, Tuple, Generator
+from pickle import FALSE
+from typing import Optional, Union, Tuple, List, Generator
 from collections import namedtuple
 import time
 import math
@@ -24,6 +25,7 @@ class Player:
     ''' A player in the Boulder Dash game. Handles controls, score and lifes. '''
     SCORE_FOR_LIFE = 100
     sound = Sound(":resources:sounds/laser1.wav")
+
     ControlKeys = namedtuple('ControlKeys', 'up left down right')
 
     def __init__(self, game: 'Game', num: int = 0) -> None:
@@ -35,16 +37,22 @@ class Player:
             Player.ControlKeys(arcade.key.NUM_8, arcade.key.NUM_4, arcade.key.NUM_2, arcade.key.NUM_6)
         self.controller = game.controllers[num] if num < len(game.controllers) else None
 
-    def is_direction(self, ix, iy) -> Tuple[int,int]: 
-        return self.is_key_direction(ix, iy) or self.is_ctrl_direction(ix, iy) 
+    def list_directions(self) -> List[Tuple[int,int]]:
+        dirs = []
+        for key in self.game.keys:
+            direction = self.key_direction(key)
+            if direction is not None: dirs.insert(0, direction)
+        for direction in [(-1,0),(+1,0),(0,-1),(0,+1)]:
+            if not direction in dirs and self.is_ctrl_direction(*direction): 
+                dirs.append(direction)
+        return dirs
 
-    def is_key_direction(self, ix, iy) -> Tuple[int,int]:
-        return (
-            self.control_keys.up    in self.game.keys and (ix,iy) == (0,+1) or
-            self.control_keys.left  in self.game.keys and (ix,iy) == (-1,0) or
-            self.control_keys.down  in self.game.keys and (ix,iy) == (0,-1) or
-            self.control_keys.right in self.game.keys and (ix,iy) == (+1,0)
-        )
+    def key_direction(self, key) -> Optional[Tuple[int,int]]:
+        if   key == self.control_keys.up    : return (0,+1)
+        elif key == self.control_keys.left  : return (-1,0)
+        elif key == self.control_keys.down  : return (0,-1)
+        elif key == self.control_keys.right : return (+1,0)
+        else: return None
 
     def is_ctrl_direction(self, ix, iy) -> Tuple[int,int]:
         return self.controller is not None and (
@@ -88,6 +96,9 @@ class Cave:
     FAILED = -2
     GAME_OVER = -3
 
+    GEO_BOXED = 0
+    GEO_TORE  = 1
+
     WAIT_STATUS = 0.75 # seconds
 
     def __init__(self, game: "Game") -> None:
@@ -95,14 +106,17 @@ class Cave:
         self.to_collect = 0 ; self.collected = 0
         self.status = Cave.NOT_LOADED ; self.wait = 0
         self.tiles = [] ; self.back_tiles = []
-        self.miner_type = None ; self.height = self.width = 0
+        self.miner_type = None ; self.geometry = Cave.GEO_BOXED
+        self.height = self.width = 0
         self.next_level(1)
 
     def load(self) -> None:
+        geom = { 'tore' : Cave.GEO_TORE }
         types = {
            'w': BrickWall, 'W': MetalWall, 'r': Boulder, 'd': Diamond, 'E': Entry, 'X': Exit,
            'f': Firefly, 'b': Butterfly, 'a': Amoeba, 'm': MagicWall, 'e': ExpandingWall,
            'k': CrackedBoulder, 'n': Mineral,'c': WoodCrate, 'h': MetalCrate, 't': CrateTarget, 'p': Portal,
+           'g': Energizer, '*': SmallDiamond, 'Z': BrickWall,
            '.': Soil, ' ': None, '_': None 
         }
         self.to_collect = 0 ; self.collected = 0
@@ -113,7 +127,8 @@ class Cave:
         self.miner_type = globals()[cave['miner']] if 'miner' in cave else Miner
         self.height = len(cave['map'])
         self.width = len(cave['map'][0])
-        self.to_collect = cave['goal']
+        self.to_collect = cave['goal'] ; 
+        self.geometry = geom[cave['geometry']] if 'geometry' in cave else Cave.GEO_BOXED
         for y in range(self.height):
             self.back_tiles.append([None for _ in range(self.width)])
             self.tiles.append([])
@@ -145,12 +160,14 @@ class Cave:
         self.wait = Cave.WAIT_STATUS
 
     def within_bounds(self, x: int ,y: int) -> bool:
-        return x >= 0 and y >= 0 and x < self.width and y < self.height
+        return self.geometry == Cave.GEO_TORE or ( x >= 0 and y >= 0 and x < self.width and y < self.height )
 
     def at(self, x: int , y: int) -> Optional['Sprite']:
+        if self.geometry == Cave.GEO_TORE : (x,y) = (x % self.width, y % self.height)
         return self.tiles[y][x] if self.within_bounds(x,y) else None
     
     def set(self, x: int , y: int, sprite: Optional['Sprite'] ) -> Optional['Sprite']:
+        if self.geometry == Cave.GEO_TORE : (x,y) = (x % self.width, y % self.height)
         current = self.at(x, y)
         if self.within_bounds(x,y): self.tiles[y][x] = sprite
         return current
@@ -174,6 +191,7 @@ class Cave:
         if (ix, iy) == (0, 0) and self.at(sprite.x, sprite.y) is sprite: return True
         if self.at(sprite.x, sprite.y) is sprite: self.set(sprite.x, sprite.y, None)
         sprite.x += ix ;  sprite.y += iy
+        if self.geometry == Cave.GEO_TORE : (sprite.x, sprite.y) = (sprite.x % self.width, sprite.y % self.height)
         tile = self.set(sprite.x, sprite.y, sprite)
         sprite.on_moved(tile)
         if tile is not None and self.at(sprite.x, sprite.y) != tile: tile.on_destroy()
@@ -208,6 +226,7 @@ class Cave:
                 if self.within_bounds(x, y):
                     tile = self.at(x, y)
                     if tile is None or (not isinstance(tile, tile_type) and tile.can_break()):
+                        if self.geometry == Cave.GEO_TORE : (x,y) = (x % self.width, y % self.height)
                         self.set(x, y, tile_type(self, x, y))
                         if not tile is None: tile.on_destroy()
 
@@ -231,7 +250,7 @@ class CaveView(arcade.View):
             self.camera = arcade.Camera(width, height)
             self.camera_gui = arcade.Camera(width, height)
             if not self.center is None: self.center_on(*self.center)
-            gui_offset = Game.TILE_SIZE if height > (Cave.HEIGHT_MAX + 1) * Game.TILE_SIZE else 0
+            gui_offset = Game.TILE_SIZE / 2 if height > (Cave.HEIGHT_MAX + 1) * Game.TILE_SIZE else 0
             self.camera_gui.move_to( ((Game.WIDTH - width)/2, gui_offset))
 
     def center_on(self, x, y, speed = 1) -> None:
@@ -297,7 +316,7 @@ class CaveView(arcade.View):
 class Game(arcade.Window):
     ''' The main Boulder Dash game. Holds the game model. Manages views. Buffers keys and controllers. '''
 
-    TILE_SIZE = 40
+    TILE_SIZE = 42 # 64
     WIDTH_TILES = Cave.WIDTH_MIN # Cave.WIDTH_MAX
     HEIGHT_TILES = Cave.HEIGHT_MIN # Cave.HEIGHT_MAX
     WIDTH = TILE_SIZE * WIDTH_TILES
@@ -308,7 +327,7 @@ class Game(arcade.Window):
     sound_over = Sound(':resources:sounds/gameover3.wav')
 
     def __init__(self):
-        super().__init__(Game.WIDTH, Game.HEIGHT, Game.TITLE)
+        super().__init__(Game.WIDTH, Game.HEIGHT, Game.TITLE, vsync=True)
         self.set_icon(pyglet.image.load(f'res/Miner{Sprite.TILE_SIZE}-0.png'))
         self.keys = []
         self.controllers = []

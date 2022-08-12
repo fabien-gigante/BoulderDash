@@ -128,11 +128,15 @@ class Pushable(Sprite):
 class Massive(Pushable):
     ''' An abstract sprite subject to gravity. It falls down and rolls off rounded objects. '''
     sound_fall = Sound(":resources:sounds/hurt2.wav")
+    def __init__(self, cave: Cave, x: int, y: int, n: int = 1) -> None:
+       super().__init__(cave, x, y, n)
+       self.gravity = True
 
     def can_move(self, ix: int, iy: int)  -> bool: 
-        return iy <= 0 and super().can_move(ix, iy)
+        return (not self.gravity or iy <= 0) and super().can_move(ix, iy)
     
     def tick(self) -> None:
+        if not self.gravity: return
         if self.try_move(0, -1): return
         elif self.moving: self.end_fall(self.neighbor(0, -1))
         ix = random.randint(0, 1) * 2 - 1   # pick a side at random
@@ -155,8 +159,8 @@ class Diamond(Massive):
     sound = Sound(":resources:sounds/coin5.wav")
     sound_fall = Sound(":resources:sounds/coin4.wav")
     sound_explosion = Sound(":resources:sounds/secret4.wav")
-    def __init__(self, cave: Cave, x: int, y: int) -> None:
-        super().__init__(cave, x, y, 4)
+    def __init__(self, cave: Cave, x: int, y: int, n: int = 4) -> None:
+        super().__init__(cave, x, y, n)
 
     def can_be_occupied(self, by: Sprite, _ix: int, _iy: int) -> bool: return isinstance(by, Miner)
     def can_break(self) -> bool:  return False
@@ -167,11 +171,31 @@ class Diamond(Massive):
         return 5 if self.cave.is_complete() else 2
 
     def tick(self) -> None:
-        if random.randint(0,2) == 1:
-            shine = random.randint(1, 40)
-            if shine > 3: shine = 0
+        if random.randint(0,3) == 1:
+            shine = random.randint(1, 10*self.nb_skins)
+            if shine >= self.nb_skins: shine = 0
             self.set_skin(shine)
         super().tick()
+
+class SmallDiamond(Diamond):
+    ''' TODO '''
+    def __init__(self, cave: Cave, x: int, y: int) -> None:
+        super().__init__(cave, x, y, 1)
+        self.gravity = False
+    def collect(self) -> int:
+        if (self.x+self.y) % 2 == 0: self.cave.collected -= 1
+        super().collect()
+        return 1
+
+class Energizer(Diamond):
+    ''' TODO '''
+    TIME_OUT = 5
+    def collect(self) -> int:
+        Player.sound.play()
+        for insect in self.cave.sprites(Insect): 
+            insect.frightened = Energizer.TIME_OUT
+            (ix,iy) = insect.dir ; insect.dir = (-ix,-iy)
+        return super().collect()
 
 class CrackedBoulder(Boulder):
     ''' A fragile boulder. Breaks when falling or being hit. '''
@@ -279,10 +303,10 @@ class Miner(Creature):
 
     def can_be_occupied(self, by: Sprite, ix:int, iy:int) -> bool:
         if self.cave.status != Cave.IN_PROGRESS: return False
-        return super().can_be_occupied(by, ix, iy) or isinstance(by, Insect)
+        return super().can_be_occupied(by, ix, iy) or (isinstance(by, Insect) and by.frightened == 0)
 
     def on_moved(self, into: Optional[Sprite]) -> None:
-        if isinstance(into, Diamond) or isinstance(into, Soil):
+        if isinstance(into, Diamond) or isinstance(into, Soil) or (isinstance(into, Insect) and into.frightened > 0):
             self.player.score += into.collect()
         self.pushing = None
 
@@ -293,12 +317,10 @@ class Miner(Creature):
 
     def tick(self) -> None:
         if self.cave.status != Cave.IN_PROGRESS: return
-        for direction in [(-1,0),(+1,0),(0,-1),(0,+1)]:
-            if self.player.is_direction(*direction):
-                if self.try_move(*direction): return
-        for direction in [(-1,0),(+1,0),(0,-1),(0,+1)]:
-            if self.player.is_direction(*direction):
-                if self.try_push(*direction): return
+        for direction in self.player.list_directions():
+            if self.try_move(*direction): return
+        for direction in self.player.list_directions():
+            if self.try_push(*direction): return
 
     def try_push(self, ix:int, iy:int) -> bool:
         pushed = self.neighbor(ix, iy)
@@ -324,22 +346,40 @@ class Girl(Miner):
 class Insect(Creature):
     ''' An abstract unfriendly creature in the cave. Wanders around. Kills miners. '''
     def __init__(self, cave: Cave, x: int, y: int) -> None:
-        super().__init__(cave, x, y)
+        super().__init__(cave, x, y, 4)
         self.speed /= 2
         self.priority = Sprite.PRIORITY_LOW
+        self.frightened = 0
 
     def can_be_occupied(self, by: Sprite, ix: int, iy: int) -> bool: 
         return super().can_be_occupied(by, ix, iy) or isinstance(by, Miner)
     
     def try_wander(self) -> bool: pass
+
+    def collect(self) -> int :
+       Diamond.sound_explosion.play()
+       return 5 if self.frightened > 0 else 0
     
+    def on_update(self, delta_time: float = 1/60) -> None:
+        super().on_update(delta_time)
+        self.frightened = max(0, self.frightened - delta_time)
+
     def tick(self) -> None:
-        self.next_skin()
+        skin = self.skin ^ 1
+        if self.frightened == 0: skin &= 1
+        elif self.frightened > 1: skin |= 2
+        else: skin ^= 2
+        self.set_skin( skin )
         # if adjacent to a miner, try to catch him
-        for look in [(-1,0),(+1,0),(0,-1),(0,+1)]:
-            if isinstance(self.neighbor(*look), Miner) and self.try_move(*look): return
+        if  self.frightened == 0:
+            for look in [(-1,0),(+1,0),(0,-1),(0,+1)]:
+                if isinstance(self.neighbor(*look), Miner) and self.try_move(*look): return
         # else wander around
         self.try_wander()
+
+    def on_destroy(self) -> None: 
+        if self.frightened == 0 or not isinstance(self.neighbor(0,0), Miner):
+            super().on_destroy()
 
 class Firefly(Insect):
     ''' Simplest kind of insect. Wanders clockwise. '''
@@ -361,7 +401,9 @@ class Butterfly(Insect):
         (ix,iy) = self.dir
         return self.try_move(iy, -ix) or self.try_move(ix, iy) or self.try_move(-iy, ix) or self.try_move(-ix, -iy) or self.try_wait()
 
-    def on_destroy(self) -> None: self.cave.explode(self.x, self.y, Diamond)
+    def on_destroy(self) -> None: 
+        if self.frightened == 0 or not isinstance(self.neighbor(0,0), Miner):
+            self.cave.explode(self.x, self.y, Diamond)
 
 class MagicWall(BrickWall):
     ''' An enchanted brick wall. A boulder or diamond that hits the wall gets changed into a diamond or boulder respectively, and falls through. '''
