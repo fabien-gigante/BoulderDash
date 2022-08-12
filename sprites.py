@@ -214,28 +214,28 @@ class Entry(Sprite):
         self.add_skin(Exit.__name__, 1)
         self.set_skin(0)
         self.wait = Entry.WAIT_OPEN
-        self.player_assigned = False
-        self.player = None
-
-    def assign_player(self) -> None:
-        if self.cave.nb_players < len(self.cave.game.players):
-            self.player = self.cave.game.players[self.cave.nb_players]
-            self.cave.nb_players += 1
-            self.player.center_on(self.center_x, self.center_y, 1)
-        else: self.player = None
-        self.player_assigned = True
+        self.once = False
 
     def on_update(self, delta_time: float = 1/60) -> None:
-        if not self.player_assigned: self.assign_player()
+        if not self.once: 
+            self.cave.game.center_on(self.center_x, self.center_y, 1)
+            self.once = True
         super().on_update(delta_time)
 
+    def can_be_occupied(self, by: Sprite, _ix: int, _iy: int) -> bool: return isinstance(by, Miner)
+
     def tick(self) -> None:
-        if self.player is not None and self.player.life > 0: 
-            Entry.sound.play()
-            self.cave.replace(self, self.cave.miner_type(self.cave, self.x, self.y, self.player)) 
-        else:
+        for player in self.cave.game.players:
+            if player.life > 0:
+                miner = self.cave.miner_type(self.cave, self.x, self.y, player)
+                for direction in [(0,0),(-1,0),(+1,0),(0,+1),(0,-1),(-1,+1),(+1,+1),(-1,-1),(+1,-1)]:
+                    if miner.try_move(*direction):
+                        Entry.sound.play()
+                        break
+        if self.neighbor(0,0) is self:
             CrackedBoulder.sound.play()
             self.cave.replace(self, Explosion)
+        self.cave.replace_all(Entry, Explosion)
 
 class Exit(Sprite):
     ''' A door that miners must use the exit the cave when completed. '''
@@ -268,7 +268,7 @@ class Miner(Creature):
     ''' Main protagonist in the cave. Controled by a player. Can push the pushable sprites. '''
 
     def __init__(self, cave: Cave, x: int, y: int, player: Player) -> None:
-        super().__init__(cave, x, y, 2)
+        super().__init__(cave, x, y, 4)
         self.set_skin(player.num % self.nb_skins)
         self.pushing = None
         self.player = player

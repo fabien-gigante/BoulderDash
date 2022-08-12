@@ -31,7 +31,8 @@ class Player:
         self.control_keys = \
             Player.ControlKeys(arcade.key.UP, arcade.key.LEFT, arcade.key.DOWN, arcade.key.RIGHT) if num == 0 else \
             Player.ControlKeys(arcade.key.Z, arcade.key.Q, arcade.key.S, arcade.key.D) if num == 1 else \
-            Player.ControlKeys(arcade.key.I, arcade.key.J, arcade.key.K, arcade.key.L)
+            Player.ControlKeys(arcade.key.I, arcade.key.J, arcade.key.K, arcade.key.L) if num == 2 else \
+            Player.ControlKeys(arcade.key.NUM_8, arcade.key.NUM_4, arcade.key.NUM_2, arcade.key.NUM_6)
         self.controller = game.controllers[num] if num < len(game.controllers) else None
 
     def is_direction(self, ix, iy) -> Tuple[int,int]: 
@@ -89,7 +90,7 @@ class Cave:
 
     def __init__(self, game: "Game") -> None:
         self.game = game
-        self.nb_players = 0 ; self.to_collect = 0 ; self.collected = 0
+        self.to_collect = 0 ; self.collected = 0
         self.status = Cave.NOT_LOADED ; self.wait = 0
         self.tiles = [] ; self.back_tiles = []
         self.miner_type = None ; self.height = self.width = 0
@@ -102,7 +103,7 @@ class Cave:
            'k': CrackedBoulder, 'n': Mineral,'c': WoodCrate, 'h': MetalCrate, 't': CrateTarget, 'p': Portal,
            '.': Soil, ' ': None, '_': None 
         }
-        self.nb_players = 0 ; self.to_collect = 0 ; self.collected = 0
+        self.to_collect = 0 ; self.collected = 0
         self.status = Cave.IN_PROGRESS ; self.wait = 0
         self.tiles = [] ; self.back_tiles = []
         cave = CAVES[self.level - 1]
@@ -163,8 +164,8 @@ class Cave:
 
     def try_move(self, sprite: 'Sprite', ix: int , iy: int) -> bool:
         if not sprite.can_move(ix, iy): return False
-        if (ix, iy) == (0, 0): return True
-        self.set(sprite.x, sprite.y, None)
+        if (ix, iy) == (0, 0) and self.at(sprite.x, sprite.y) is sprite: return True
+        if self.at(sprite.x, sprite.y) is sprite: self.set(sprite.x, sprite.y, None)
         sprite.x += ix ;  sprite.y += iy
         tile = self.set(sprite.x, sprite.y, sprite)
         sprite.on_moved(tile)
@@ -295,8 +296,8 @@ class Game(arcade.Window):
         self.players = []
         self.cave = None
 
-    def reset(self) -> None : self.players = [ Player(self) ]
-
+    def reset(self) -> None : self.players = [ Player(self, i) for i in range(1) ]
+    
     def setup(self) -> None:
         self.controllers = arcade.get_game_controllers()
         for ctrl in self.controllers: ctrl.open()
@@ -317,10 +318,8 @@ class Game(arcade.Window):
         elif (symbol == arcade.key.NUM_MULTIPLY or symbol == arcade.key.F5):
             self.reset() ; self.cave.restart_level()
         elif symbol == arcade.key.NUM_DIVIDE : self.reset() ; self.cave.next_level(1)
-        elif (
-            (symbol == arcade.key.ENTER and modifiers & arcade.key.MOD_ALT) or
-            (symbol == arcade.key.ESCAPE and self.fullscreen) or symbol == arcade.key.F11
-        ): self.set_fullscreen(not self.fullscreen)
+        elif (symbol == arcade.key.ENTER or symbol == arcade.key.F11 or (symbol == arcade.key.ESCAPE and self.fullscreen) ):
+           self.set_fullscreen(not self.fullscreen)
 
     def on_key_release(self, symbol, modifiers):
         if symbol in self.keys: self.keys.remove(symbol)
