@@ -116,7 +116,7 @@ class Cave:
            'w': BrickWall, 'W': MetalWall, 'r': Boulder, 'd': Diamond, 'E': Entry, 'X': Exit,
            'f': Firefly, 'b': Butterfly, 'a': Amoeba, 'm': MagicWall, 'e': ExpandingWall,
            'k': CrackedBoulder, 'n': Mineral,'c': WoodCrate, 'h': MetalCrate, 't': CrateTarget, 'p': Portal,
-           'g': Energizer, '*': SmallDiamond, 'Z': BrickWall,
+           'g': Energizer, '*': SmallDiamond, 'Z': BrickWall, 'l': Balloon,
            '.': Soil, ' ': None, '_': None 
         }
         self.to_collect = 0 ; self.collected = 0
@@ -159,15 +159,19 @@ class Cave:
         self.status = status
         self.wait = Cave.WAIT_STATUS
 
+    def wrap(self, x:int, y:int) -> Tuple[int,int]:
+        if self.geometry == Cave.GEO_TORE : return (x % self.width, y % self.height)
+        else: return (x,y)
+
     def within_bounds(self, x: int ,y: int) -> bool:
-        return self.geometry == Cave.GEO_TORE or ( x >= 0 and y >= 0 and x < self.width and y < self.height )
+        return x >= 0 and y >= 0 and x < self.width and y < self.height
 
     def at(self, x: int , y: int) -> Optional['Sprite']:
-        if self.geometry == Cave.GEO_TORE : (x,y) = (x % self.width, y % self.height)
+        (x,y) = self.wrap(x,y)
         return self.tiles[y][x] if self.within_bounds(x,y) else None
     
     def set(self, x: int , y: int, sprite: Optional['Sprite'] ) -> Optional['Sprite']:
-        if self.geometry == Cave.GEO_TORE : (x,y) = (x % self.width, y % self.height)
+        (x,y) = self.wrap(x,y)
         current = self.at(x, y)
         if self.within_bounds(x,y): self.tiles[y][x] = sprite
         return current
@@ -181,7 +185,7 @@ class Cave:
         for sprite in self.sprites(cond): self.replace(sprite, by)
 
     def can_move(self, sprite: 'Sprite', ix: int , iy: int) -> bool:
-        (x, y) = (sprite.x + ix, sprite.y + iy)
+        (x, y) = self.wrap(sprite.x + ix, sprite.y + iy)
         if not self.within_bounds(x,y): return False
         tile = self.at(x,y)
         return tile is None or tile.can_be_occupied(sprite, ix, iy)
@@ -190,8 +194,7 @@ class Cave:
         if not sprite.can_move(ix, iy): return False
         if (ix, iy) == (0, 0) and self.at(sprite.x, sprite.y) is sprite: return True
         if self.at(sprite.x, sprite.y) is sprite: self.set(sprite.x, sprite.y, None)
-        sprite.x += ix ;  sprite.y += iy
-        if self.geometry == Cave.GEO_TORE : (sprite.x, sprite.y) = (sprite.x % self.width, sprite.y % self.height)
+        (sprite.x, sprite.y) = self.wrap(sprite.x + ix, sprite.y + iy)
         tile = self.set(sprite.x, sprite.y, sprite)
         sprite.on_moved(tile)
         if tile is not None and self.at(sprite.x, sprite.y) != tile: tile.on_destroy()

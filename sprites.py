@@ -81,17 +81,24 @@ class Unknown(Sprite):
     ''' Typically used to represent a sprite not yet implemented. '''
     def __init__(self, cave: Cave, x: int, y: int) -> None: super().__init__(cave, x, y)
 
-class Soil(Sprite):
+class ICollectable():
+    ''' Interface. Something that miners can collect. '''
+    def collect(self) -> int : return 0
+
+class Soil(Sprite, ICollectable):
     ''' A soil or dirt sprite that miners can dig through. '''
     sound = Sound(":resources:sounds/rockHit2.wav")
     def __init__(self, cave: Cave, x: int, y: int) -> None: super().__init__(cave, x, y)
     def can_be_occupied(self, by: Sprite, _ix: int, _iy: int) -> bool: return isinstance(by, Miner)
-    def collect(self) -> int : Soil.sound.play() ; return 0
+    def collect(self) -> int : Soil.sound.play() ; return super().collect()
+
+class IRounded():
+    ''' Interface. Something on top of which things can roll. '''
 
 class Wall(Sprite):
     ''' An abstract wall sprite. Blocks movement but breakable by explosions. '''
 
-class BrickWall(Wall):
+class BrickWall(Wall, IRounded):
     ''' A brick wall sprite. '''
 
 class MetalWall(Wall):
@@ -125,12 +132,16 @@ class Pushable(Sprite):
     ''' An abstract sprite that can be pushed by miners. '''
     sound = Sound(":resources:sounds/hurt1.wav")
 
-class Massive(Pushable):
+class IFragile():
+    ''' Interface. Something fragile that can crack. '''
+    sound = Sound(":resources:sounds/hit4.wav")
+    def crack(self) -> None: IFragile.sound.play()
+
+class Weighted(Pushable):
     ''' An abstract sprite subject to gravity. It falls down and rolls off rounded objects. '''
-    sound_fall = Sound(":resources:sounds/hurt2.wav")
     def __init__(self, cave: Cave, x: int, y: int, n: int = 1) -> None:
-       super().__init__(cave, x, y, n)
-       self.gravity = -1
+        super().__init__(cave, x, y, n)
+        self.gravity = -1
 
     def can_move(self, ix: int, iy: int)  -> bool: 
         return (self.gravity == 0 or iy == 0 or iy ==self.gravity) and super().can_move(ix, iy)
@@ -142,19 +153,31 @@ class Massive(Pushable):
         ix = random.randint(0, 1) * 2 - 1   # pick a side at random
         _ = self.try_roll(ix) or self.try_roll(-ix)
     
-    def end_fall(self, onto: Sprite) -> None:
-        type(self).sound_fall.play()
-        if isinstance(onto, CrackedBoulder): onto.end_fall(None)
+    def end_fall(self, onto: Sprite) -> None: pass
     
     def try_roll(self, ix: int) -> bool:
         below = self.neighbor(0, self.gravity)
-        return (isinstance(below, Massive) or isinstance(below, BrickWall)) and self.can_move(ix, self.gravity) and self.try_move(ix, 0)
+        return isinstance(below, IRounded) and self.can_move(ix, self.gravity) and self.try_move(ix, 0)
+
+class Balloon(Weighted, IRounded):
+    ''' A balloon sprite lighter than air. Falls upwards. '''
+    def __init__(self, cave: Cave, x: int, y: int) -> None:
+       super().__init__(cave, x, y)
+       self.gravity = +1
+
+class Massive(Weighted, IRounded):
+    ''' A sprite so massive it can crush creatures. '''
+    sound_fall = Sound(":resources:sounds/hurt2.wav")
+    def end_fall(self, onto: Sprite) -> None:
+        super().end_fall(onto)
+        type(self).sound_fall.play()
+        if isinstance(onto, IFragile): onto.crack()
 
 class Boulder(Massive):
     ''' A rock or boulder sprite. '''
     def __init__(self, cave: Cave, x: int, y: int) -> None: super().__init__(cave, x, y)
 
-class Diamond(Massive):
+class Diamond(Massive, ICollectable):
     ''' A diamond sprite. Unbreakable. Animated. The goal of the game is to collect them. '''
     sound = Sound(":resources:sounds/coin5.wav")
     sound_fall = Sound(":resources:sounds/coin4.wav")
@@ -177,14 +200,13 @@ class Diamond(Massive):
             self.set_skin(shine)
         super().tick()
 
-class SmallDiamond(Diamond):
-    ''' A small and light diamond. Not subject to gravity. Worth half the value. '''
-    def __init__(self, cave: Cave, x: int, y: int) -> None:
-        super().__init__(cave, x, y, 1)
-        self.gravity = 0
+class SmallDiamond(Sprite, ICollectable):
+    ''' A small and light diamond. Not subject to gravity. Worth lower value. '''
+    def can_be_occupied(self, by: Sprite, _ix: int, _iy: int) -> bool: return isinstance(by, Miner)
     def collect(self) -> int:
-        if (self.x+self.y) % 2 == 0: self.cave.collected -= 1
-        return super().collect() // 2
+        Diamond.sound.play()
+        if (self.x+self.y) % 2 == 0: self.cave.collected += 1
+        return 1
 
 class Energizer(Diamond):
     ''' A special diamond that frightens insects for some time. A frightened insect can be killed. '''
@@ -196,21 +218,23 @@ class Energizer(Diamond):
             (ix,iy) = insect.dir ; insect.dir = (-ix,-iy)
         return super().collect()
 
-class CrackedBoulder(Boulder):
+class CrackedBoulder(Boulder, IFragile):
     ''' A fragile boulder. Breaks when falling or being hit. '''
-    sound = Sound(":resources:sounds/hit4.wav")
-
     WAIT_CRACK = .125 # sec
     def __init__(self, cave: Cave, x: int, y: int, crack_type = None) -> None: 
         super().__init__(cave, x, y)
         self.add_skin(type(self).__name__, 0, True)
         self.crack_time = math.inf
         self.crack_type = crack_type if crack_type is not None else Explosion
-    def end_fall(self, onto: Sprite) -> None:
-        CrackedBoulder.sound.play()
-        super().end_fall(onto)
+
+    def crack(self) -> None:
+        super().crack()
         self.next_skin()
         self.crack_time = time.time() + CrackedBoulder.WAIT_CRACK 
+
+    def end_fall(self, onto: Sprite) -> None:
+        super().end_fall(onto)
+        self.crack()
 
     def tick(self) -> None:
         if time.time() >= self.crack_time : self.cave.replace(self, self.crack_type)
@@ -305,8 +329,7 @@ class Miner(Creature):
         return super().can_be_occupied(by, ix, iy) or (isinstance(by, Insect) and by.frightened == 0)
 
     def on_moved(self, into: Optional[Sprite]) -> None:
-        if isinstance(into, Diamond) or isinstance(into, Soil) or (isinstance(into, Insect) and into.frightened > 0):
-            self.player.score += into.collect()
+        if isinstance(into, ICollectable): self.player.score += into.collect()
         self.pushing = None
 
     def focus(self, speed = CAMERA_SPEED) -> None: super().focus(speed)
@@ -340,9 +363,9 @@ class Miner(Creature):
         self.player.kill()
 
 class Girl(Miner):
-    ''' A miner with a different skin... '''
+    ''' A female miner with a different skin... '''
 
-class Insect(Creature):
+class Insect(Creature, ICollectable):
     ''' An abstract unfriendly creature in the cave. Wanders around. Kills miners. '''
     def __init__(self, cave: Cave, x: int, y: int) -> None:
         super().__init__(cave, x, y, 4)
@@ -415,16 +438,16 @@ class MagicWall(BrickWall):
         super().tick()
 
     def can_be_occupied(self, by: 'Sprite', _ix: int, _iy: int) -> bool:
-        return isinstance(by, Massive) and by.moving
+        return isinstance(by, Weighted) and by.moving
 
     def on_destroy(self) -> None:
         # won't be destroyed by falling rocks, do its magic instead !
         rock = self.neighbor(0, 0)
-        if isinstance(rock, Massive): 
-            if isinstance(rock, Boulder): rock = Diamond(self.cave, self.x, self.y)
-            elif isinstance(rock, Diamond): rock = Boulder(self.cave, self.x, self.y) 
-            elif isinstance(rock, CrackedBoulder): rock = Mineral(self.cave, self.x, self.y) 
+        if isinstance(rock, Weighted): 
+            if   isinstance(rock, CrackedBoulder): rock = Mineral(self.cave, self.x, self.y) 
             elif isinstance(rock, Mineral): rock = CrackedBoulder(self.cave, self.x, self.y)
+            elif isinstance(rock, Boulder): rock = Diamond(self.cave, self.x, self.y)
+            elif isinstance(rock, Diamond): rock = Boulder(self.cave, self.x, self.y) 
             rock.tick() # continue its fall through...
             self.cave.set(self.x, self.y, self)
 
