@@ -371,7 +371,7 @@ class Game(arcade.Window):
         if self.current_view is not None: self.current_view.on_loaded()
 
     def on_key_press(self, symbol, modifiers): 
-        self.keys.append(symbol)
+        if not symbol in self.keys: self.keys.append(symbol)
         if symbol == arcade.key.NUM_ADD : self.cave.next_level()
         elif symbol == arcade.key.NUM_SUBTRACT : self.cave.next_level(self.cave.level - 1)
         elif (symbol == arcade.key.NUM_MULTIPLY or symbol == arcade.key.F5):
