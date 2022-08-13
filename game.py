@@ -187,8 +187,8 @@ class Cave:
         for sprite in self.sprites(cond): self.replace(sprite, by)
 
     def can_move(self, sprite: 'Sprite', ix: int , iy: int) -> bool:
-        (x, y) = self.wrap(sprite.x + ix, sprite.y + iy)
-        if not self.within_bounds(x,y): return False
+        (x, y) = sprite.offset(ix, iy)
+        if not self.within_bounds(x, y): return False
         tile = self.at(x,y)
         return tile is None or tile.can_be_occupied(sprite, ix, iy)
 
@@ -196,7 +196,7 @@ class Cave:
         if not sprite.can_move(ix, iy): return False
         if (ix, iy) == (0, 0) and self.at(sprite.x, sprite.y) is sprite: return True
         if self.at(sprite.x, sprite.y) is sprite: self.set(sprite.x, sprite.y, None)
-        (sprite.x, sprite.y) = self.wrap(sprite.x + ix, sprite.y + iy)
+        (sprite.x, sprite.y) = sprite.offset(ix, iy)
         tile = self.set(sprite.x, sprite.y, sprite)
         sprite.on_moved(tile)
         if tile is not None and self.at(sprite.x, sprite.y) != tile: tile.on_destroy()
