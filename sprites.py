@@ -5,6 +5,9 @@ import random
 import arcade
 from game import Game, Cave, Player, Sound
 
+class Interface:
+    ''' Pure abstract. To distinguish from standard classes. '''
+
 class Sprite(arcade.Sprite):
     ''' An sprite in the game's cave. Manages skins, positioning, basic movement, timings, and update. '''
 
@@ -81,8 +84,8 @@ class Unknown(Sprite):
     ''' Typically used to represent a sprite not yet implemented. '''
     def __init__(self, cave: Cave, x: int, y: int) -> None: super().__init__(cave, x, y)
 
-class ICollectable():
-    ''' Interface. Something that miners can collect. '''
+class ICollectable(Interface):
+    ''' Interface. Something that can be collected. '''
     def collect(self) -> int : return 0
 
 class Soil(Sprite, ICollectable):
@@ -92,7 +95,7 @@ class Soil(Sprite, ICollectable):
     def can_be_occupied(self, by: Sprite, _ix: int, _iy: int) -> bool: return isinstance(by, Miner)
     def collect(self) -> int : Soil.sound.play() ; return super().collect()
 
-class IRounded():
+class IRounded(Interface):
     ''' Interface. Something on top of which things can roll. '''
 
 class Wall(Sprite):
@@ -132,8 +135,8 @@ class Pushable(Sprite):
     ''' An abstract sprite that can be pushed by miners. '''
     sound = Sound(":resources:sounds/hurt1.wav")
 
-class IFragile():
-    ''' Interface. Something fragile that can crack. '''
+class IFragile(Interface):
+    ''' Interface. Something that can crack. '''
     sound = Sound(":resources:sounds/hit4.wav")
     def crack(self) -> None: IFragile.sound.play()
 

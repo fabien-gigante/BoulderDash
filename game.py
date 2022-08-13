@@ -1,4 +1,3 @@
-from pickle import FALSE
 from typing import Optional, Union, Tuple, List, Generator
 from collections import namedtuple
 import time
@@ -11,13 +10,14 @@ from caves import CAVES
 class Sound(arcade.Sound):
     ''' An audio media in the game. Preloaded. Played at moderate volume and at most once per frame (for a given sound). '''
     VOLUME = 0.5
+    MAX_RATE = 1/60 # sec
     def __init__(self, file) -> None: 
         super().__init__(file)
         self.last_played = -math.inf
         super().play(0).delete() # force audio preloading
     def play(self, volume = VOLUME, pan: float = 0.0, loop: bool = False, speed: float = 1.0):
         now = time.time()
-        if (now - self.last_played < 1/60): return
+        if (now - self.last_played < MAX_RATE): return
         self.last_played = now
         return super().play(volume, pan, loop, speed)
 
@@ -326,11 +326,12 @@ class Game(arcade.Window):
     HEIGHT = TILE_SIZE * (HEIGHT_TILES + 1)
     TITLE = 'Boulder Dash'
     FONT = 'Kenney High Square'
+
     music = Sound(':resources:music/funkyrobot.mp3')
     sound_over = Sound(':resources:sounds/gameover3.wav')
 
     def __init__(self):
-        super().__init__(Game.WIDTH, Game.HEIGHT, Game.TITLE, vsync=True)
+        super().__init__(Game.WIDTH, Game.HEIGHT, Game.TITLE, vsync = True)
         self.set_icon(pyglet.image.load(f'res/Miner{Sprite.TILE_SIZE}-0.png'))
         self.keys = []
         self.controllers = []
