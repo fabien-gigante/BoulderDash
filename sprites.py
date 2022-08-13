@@ -153,7 +153,7 @@ class Weighted(Pushable):
         if self.gravity == 0 : return
         if self.try_move(0, self.gravity): return
         elif self.moving: self.end_fall(self.neighbor(0, self.gravity))
-        ix = random.randint(0, 1) * 2 - 1   # pick a side at random
+        ix = random.choice([-1,+1])
         _ = self.try_roll(ix) or self.try_roll(-ix)
     
     def end_fall(self, onto: Sprite) -> None: pass
