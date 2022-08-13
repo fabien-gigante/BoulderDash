@@ -45,7 +45,9 @@ class Sprite(arcade.Sprite):
         self.cave.game.center_on(self.center_x, self.center_y, speed)
 
     def neighbor(self, ix:int, iy:int) -> Optional['Sprite'] :
-        return self.cave.at(self.x + ix, self.y + iy)
+        tile = self.cave.at(self.x + ix, self.y + iy)
+        if isinstance(tile, Portal): tile = tile.look_through(ix, iy)
+        return tile
 
     def is_kind_of(self, cond: Optional[Union[int, type]]):
         return cond is None or (isinstance(cond, type) and isinstance(self, cond)) or self.priority == cond
@@ -113,23 +115,18 @@ class ExpandingWall(Wall):
     def __init__(self, cave: Cave, x: int, y: int) -> None:
         super().__init__(cave, x, y, 2)
         self.add_skin(ExpandingWall.__name__, 1, True)
+        self.horizontal = True
         self.speed /= 2
         self.try_wait()
 
     def tick(self) -> None:
         self.set_skin(0)
-        (x,y) = (self.x, self.y)
-        for ix in [-1, +1]:
-            into = self.neighbor(ix, 0)
-            if isinstance(into, Portal): 
-                (x,y) = (into.link.x, into.link.y)
-                into = into.look_through(ix, 0)
-            if into is None:
-                tile = ExpandingWall(self.cave, x + ix, y)
-                tile.set_skin(2 if ix == -1 else 1)
-                self.cave.set(tile.x, tile.y, tile)
+        for (ix, iy) in ([(-1,0), (+1,0)] if self.horizontal else [(0,-1), (0,+1)]):
+            if self.can_move(ix, iy):
+                tile = ExpandingWall(self.cave, self.x, self.y)
+                tile.set_skin(2 if ix < 0 or iy < 0 else 1)
                 Boulder.sound_fall.play()
-                self.try_wait()
+                tile.try_move(ix, iy)
 
 class Pushable(Sprite):
     ''' An abstract sprite that can be pushed by miners. '''
@@ -340,16 +337,18 @@ class Miner(Creature):
         super().on_update(delta_time)
         if self.moved: self.focus()
 
+    def try_move(self, ix: int, iy: int, allow_push = True) -> bool:
+        return super().try_move(ix, iy) or (allow_push and self.try_push(ix, iy))
+
     def tick(self) -> None:
         if self.cave.status != Cave.IN_PROGRESS: return
         for direction in self.player.list_directions():
-            if self.try_move(*direction): return
+            if self.try_move(*direction, False): return
         for direction in self.player.list_directions():
             if self.try_push(*direction): return
 
     def try_push(self, ix:int, iy:int) -> bool:
         pushed = self.neighbor(ix, iy)
-        if isinstance(pushed, Portal): pushed = pushed.look_through(ix, iy)
         if isinstance(pushed, Pushable):
             if self.pushing == (ix, iy):
                 if pushed.try_move(ix, iy): 
@@ -358,7 +357,7 @@ class Miner(Creature):
             else:
                 self.dir = (ix, iy)
                 self.pushing = self.dir
-                self.try_wait()
+                return self.try_wait()
         return False
 
     def on_destroy(self) -> None:
@@ -515,12 +514,9 @@ class Portal(Sprite):
     def look_through(self, ix:int, iy:int) -> Optional[Sprite]:
         return self.link.neighbor(ix, iy)
 
-    def can_be_occupied(self, by: 'Sprite', ix:int, iy:int) -> bool: 
-        (x,y) = (by.x, by.y)
-        (by.x, by.y) = (self.link.x, self.link.y)
-        teleport = by.can_move(ix, iy)
-        (by.x, by.y) = (x,y)
-        return teleport
+    def can_be_occupied(self, by: 'Sprite', ix: int, iy: int) -> bool:
+        tile = self.look_through(ix, iy)
+        return tile is None or tile.can_be_occupied(by, ix, iy)
 
     def on_destroy(self) -> None:
         # won't be destroyed by entering object, do its magic instead !
@@ -528,8 +524,7 @@ class Portal(Sprite):
         entering = self.neighbor(0, 0) 
         self.cave.set(self.x, self.y, self)
         (entering.x, entering.y) = (self.link.x, self.link.y)
-        if not entering.try_move(*entering.dir):
-            if isinstance(entering, Miner): entering.try_push(*entering.dir)
+        entering.try_move(*entering.dir)
         self.cave.set(self.link.x, self.link.y, self.link)
 
 class Crate(Pushable):
