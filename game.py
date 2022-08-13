@@ -17,7 +17,7 @@ class Sound(arcade.Sound):
         super().play(0).delete() # force audio preloading
     def play(self, volume = VOLUME, pan: float = 0.0, loop: bool = False, speed: float = 1.0):
         now = time.time()
-        if (now - self.last_played < MAX_RATE): return
+        if (now - self.last_played < Sound.MAX_RATE): return
         self.last_played = now
         return super().play(volume, pan, loop, speed)
 
@@ -108,6 +108,7 @@ class Cave:
         self.tiles = [] ; self.back_tiles = []
         self.miner_type = None ; self.geometry = Cave.GEO_BOXED
         self.height = self.width = 0
+        self.time_remaining = 0
         self.next_level(1)
 
     def load(self) -> None:
@@ -129,6 +130,7 @@ class Cave:
         self.width = len(cave['map'][0])
         self.to_collect = cave['goal'] ; 
         self.geometry = geom[cave['geometry']] if 'geometry' in cave else Cave.GEO_BOXED
+        self.time_remaining = geom[cave['time']] if 'time' in cave else 120
         for y in range(self.height):
             self.back_tiles.append([None for _ in range(self.width)])
             self.tiles.append([])
@@ -212,6 +214,10 @@ class Cave:
 
     def on_update(self, delta_time) -> None:
         if self.status == Cave.PAUSED: return
+        if self.status == Cave.IN_PROGRESS:
+            self.time_remaining -= delta_time
+            if self.time_remaining <= 0: 
+                self.time_remaining = 0 ; self.set_status(Cave.FAILED)
         if self.wait > 0:
             self.wait -= delta_time
             if self.wait <= 0:
@@ -290,10 +296,11 @@ class CaveView(arcade.View):
         self.sprite_list.draw()
         self.camera_gui.use()
         arcade.draw_lrtb_rectangle_filled(0, self.window.width, self.window.height, self.window.height - Game.TILE_SIZE, (0,0,0,192))
-        self.print( 0, 4, 'LEVEL') ; self.print( 0, -4, f'{self.game.cave.level:02}')
-        self.print( 5, 3, 'LIFE')  ; self.print( 5, -3, f'{self.game.players[0].life:01}')
-        self.print( 9, 5, 'GOAL')  ; self.print( 9, -5, f'{self.game.cave.collected:02}/{self.game.cave.to_collect:02}')
-        self.print(15, 5, 'SCORE') ; self.print(15, -5, f'{self.game.players[0].score:04}')
+        self.print( 0, 2.5, 'LVL')   ; self.print( 0, -2.5, f'{self.game.cave.level:02}')
+        self.print( 3, 2.5, 'LIFE')  ; self.print( 3, -2.5, f'{self.game.players[0].life:01}')
+        self.print( 6, 3.5, 'TIME')    ; self.print( 6, -3.5, f'{math.floor(self.game.cave.time_remaining):03}')
+        self.print(10, 4.5, 'GOAL')    ; self.print(10, -4.5, f'{self.game.cave.collected:02}/{self.game.cave.to_collect:02}')
+        self.print(15, 5, 'SCR')   ; self.print(15, -5, f'{self.game.players[0].score:06}')
         if self.game.cave.status == Cave.NOT_LOADED: self.notify("LOADING", arcade.color.GRULLO)
         elif self.game.cave.status == Cave.PAUSED: self.notify("PAUSED", arcade.color.GRULLO)
         elif self.game.cave.status == Cave.STARTING: self.notify("GET READY", arcade.color.BANANA_YELLOW)
