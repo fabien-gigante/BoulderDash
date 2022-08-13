@@ -130,15 +130,15 @@ class Massive(Pushable):
     sound_fall = Sound(":resources:sounds/hurt2.wav")
     def __init__(self, cave: Cave, x: int, y: int, n: int = 1) -> None:
        super().__init__(cave, x, y, n)
-       self.gravity = True
+       self.gravity = -1
 
     def can_move(self, ix: int, iy: int)  -> bool: 
-        return (not self.gravity or iy <= 0) and super().can_move(ix, iy)
+        return (self.gravity == 0 or iy == 0 or iy ==self.gravity) and super().can_move(ix, iy)
     
     def tick(self) -> None:
-        if not self.gravity: return
-        if self.try_move(0, -1): return
-        elif self.moving: self.end_fall(self.neighbor(0, -1))
+        if self.gravity == 0 : return
+        if self.try_move(0, self.gravity): return
+        elif self.moving: self.end_fall(self.neighbor(0, self.gravity))
         ix = random.randint(0, 1) * 2 - 1   # pick a side at random
         _ = self.try_roll(ix) or self.try_roll(-ix)
     
@@ -147,8 +147,8 @@ class Massive(Pushable):
         if isinstance(onto, CrackedBoulder): onto.end_fall(None)
     
     def try_roll(self, ix: int) -> bool:
-        below = self.neighbor(0, -1)
-        return (isinstance(below, Massive) or isinstance(below, BrickWall)) and self.can_move(ix, -1) and self.try_move(ix, 0)
+        below = self.neighbor(0, self.gravity)
+        return (isinstance(below, Massive) or isinstance(below, BrickWall)) and self.can_move(ix, self.gravity) and self.try_move(ix, 0)
 
 class Boulder(Massive):
     ''' A rock or boulder sprite. '''
@@ -178,17 +178,16 @@ class Diamond(Massive):
         super().tick()
 
 class SmallDiamond(Diamond):
-    ''' TODO '''
+    ''' A small and light diamond. Not subject to gravity. Worth half the value. '''
     def __init__(self, cave: Cave, x: int, y: int) -> None:
         super().__init__(cave, x, y, 1)
-        self.gravity = False
+        self.gravity = 0
     def collect(self) -> int:
         if (self.x+self.y) % 2 == 0: self.cave.collected -= 1
-        super().collect()
-        return 1
+        return super().collect() // 2
 
 class Energizer(Diamond):
-    ''' TODO '''
+    ''' A special diamond that frightens insects for some time. A frightened insect can be killed. '''
     TIME_OUT = 5
     def collect(self) -> int:
         Player.sound.play()
