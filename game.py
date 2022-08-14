@@ -1,4 +1,4 @@
-from typing import Optional, Union, Tuple, List, Generator
+from typing import Optional, Union, Tuple, List, Iterable
 from collections import namedtuple
 import time
 import math
@@ -11,7 +11,7 @@ class Sound(arcade.Sound):
     ''' An audio media in the game. Preloaded. Played at moderate volume and at most once per frame (for a given sound). '''
     VOLUME = 0.5
     MAX_RATE = 1/60 # sec
-    def __init__(self, file) -> None: 
+    def __init__(self, file: str) -> None: 
         super().__init__(file)
         self.last_played = -math.inf
         super().play(0).delete() # force audio preloading
@@ -54,7 +54,7 @@ class Player:
         elif key == self.control_keys.right : return (+1,0)
         else: return None
 
-    def is_ctrl_direction(self, ix, iy) -> Tuple[int,int]:
+    def is_ctrl_direction(self, ix: int, iy: int) -> Tuple[int,int]:
         return self.controller is not None and (
             self.controller.y < -.5 and (ix,iy) == (0,+1) or
             self.controller.x < -.5 and (ix,iy) == (-1,0) or
@@ -80,6 +80,14 @@ class Player:
             self.game.cave.set_status(Cave.GAME_OVER)
             self.game.over()
 
+class Geometry:
+    ''' Defines how crossing bounds works. '''
+    def wrap(self, x: int, y: int, w:int, h: int) -> Tuple[int,int] : return (x, y)
+
+class Torus(Geometry):
+    ''' On a tore crossing bounds wraps over. '''
+    def wrap(self, x: int, y: int, w:int, h: int) -> Tuple[int,int] : return (x%w, y%h)
+
 class Cave:
     ''' The grid of tiles in which the game is played. Manages map loading and sprites updates. '''
 
@@ -96,23 +104,20 @@ class Cave:
     FAILED = -2
     GAME_OVER = -3
 
-    GEO_BOXED = 0
-    GEO_TORE  = 1
-
     WAIT_STATUS = 0.75 # seconds
+    DEFAULT_MAXTIME = 120 # seconds
 
-    def __init__(self, game: "Game") -> None:
+    def __init__(self, game: 'Game') -> None:
         self.game = game
         self.to_collect = 0 ; self.collected = 0
         self.status = Cave.NOT_LOADED ; self.wait = 0
         self.tiles = [] ; self.back_tiles = []
-        self.miner_type = None ; self.geometry = Cave.GEO_BOXED
+        self.miner_type = None ; self.geometry = None
         self.height = self.width = 0
         self.time_remaining = 0
         self.next_level(1)
 
     def load(self) -> None:
-        geom = { 'tore' : Cave.GEO_TORE }
         types = {
            'w': BrickWall, 'W': MetalWall, 'r': Boulder, 'd': Diamond, 'E': Entry, 'X': Exit,
            'f': Firefly, 'b': Butterfly, 'a': Amoeba, 'm': MagicWall, 'e': ExpandingWall,
@@ -129,8 +134,8 @@ class Cave:
         self.height = len(cave['map'])
         self.width = len(cave['map'][0])
         self.to_collect = cave['goal'] ; 
-        self.geometry = geom[cave['geometry']] if 'geometry' in cave else Cave.GEO_BOXED
-        self.time_remaining = geom[cave['time']] if 'time' in cave else 120
+        self.geometry = globals()[cave['geometry']]() if 'geometry' in cave else Geometry()
+        self.time_remaining = cave['time'] if 'time' in cave else Cave.DEFAULT_MAXTIME
         for y in range(self.height):
             self.back_tiles.append([None for _ in range(self.width)])
             self.tiles.append([])
@@ -162,8 +167,7 @@ class Cave:
         self.wait = Cave.WAIT_STATUS
 
     def wrap(self, x:int, y:int) -> Tuple[int,int]:
-        if self.geometry == Cave.GEO_TORE : return (x % self.width, y % self.height)
-        else: return (x,y)
+        return self.geometry.wrap(x, y, self.width, self.height)
 
     def within_bounds(self, x: int ,y: int) -> bool:
         return x >= 0 and y >= 0 and x < self.width and y < self.height
@@ -202,12 +206,12 @@ class Cave:
         if tile is not None and self.at(sprite.x, sprite.y) != tile: tile.on_destroy()
         return True
 
-    def sprites(self, cond: Optional[Union[int,type]] = None) -> Generator['Sprite', None, None]:
+    def sprites(self, cond: Optional[Union[int,type]] = None) -> Iterable['Sprite']:
         for row in self.tiles:
             for tile in row:
                 if tile is not None and tile.is_kind_of(cond): yield tile
 
-    def back_sprites(self, cond: Optional[Union[int,type]] = None) -> Generator['Sprite', None, None]:
+    def back_sprites(self, cond: Optional[Union[int,type]] = None) -> Iterable['Sprite']:
         for row in self.back_tiles:
             for tile in row:
                 if tile is not None and tile.is_kind_of(cond): yield tile
