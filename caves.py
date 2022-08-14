@@ -81,7 +81,7 @@ CAVES = [
             "WWWWWWWWWWWWWWWWWWWW"]
     },
     { # Level 24
-        'goal': 125, 'geometry': 'tore',
+        'goal': 125, 'geometry': 'Torus',
         'map': [
             "WWWWWWWWWWWWWWWWWWWWWWWWWWWW",
             "W************WW************W",
