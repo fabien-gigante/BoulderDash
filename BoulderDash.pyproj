@@ -33,9 +33,12 @@
     <Content Include="README.md" />
     <Content Include="doc\*.png" />
     <Content Include="res\*.png" />
+    <Content Include="util\rescaler.sh" />
+    <Content Include="util\ScalerTest_Windows.exe" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="doc\" />
+    <Folder Include="util\" />
     <Folder Include="res\" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
