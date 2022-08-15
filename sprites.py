@@ -122,9 +122,15 @@ class ExpandingWall(Wall):
                 Boulder.sound_fall.play()
                 tile.try_move(ix, iy)
 
-class Pushable(Sprite):
+class IActivable(Interface):
+    def try_activate(self, by: Sprite, ix:int, iy:int) -> bool : return False
+                    
+class Pushable(Sprite, IActivable):
     ''' An abstract sprite that can be pushed by miners. '''
     sound = Sound(":resources:sounds/hurt1.wav")
+    def try_activate(self, by: Sprite, ix:int, iy:int) -> bool : 
+        if self.try_move(ix, iy): Pushable.sound.play() ; return True
+        else: return False
 
 class IFragile(Interface):
     ''' Interface. Something that can crack. '''
@@ -308,13 +314,13 @@ class Creature(Sprite):
     def on_destroy(self) -> None: self.cave.explode(self.x, self.y)
 
 class Miner(Creature):
-    ''' Main protagonist in the cave. Controled by a player. Can push the pushable sprites. '''
+    ''' Main protagonist in the cave. Controled by a player. Can use sprites. '''
     CAMERA_SPEED = 0.02
 
     def __init__(self, cave: Cave, x: int, y: int, player: Player) -> None:
         super().__init__(cave, x, y, 4)
         self.set_skin(player.num % self.nb_skins)
-        self.pushing = None
+        self.using = None
         self.player = player
         self.priority = Sprite.PRIORITY_HIGH
 
@@ -324,7 +330,7 @@ class Miner(Creature):
 
     def on_moved(self, into: Optional[Sprite]) -> None:
         if isinstance(into, ICollectable): self.player.score += into.collect()
-        self.pushing = None
+        self.using = None
 
     def focus(self, speed = CAMERA_SPEED) -> None: super().focus(speed)
     def on_update(self, delta_time: float = 1/60) -> None:
@@ -332,25 +338,24 @@ class Miner(Creature):
         if self.moved: self.focus()
 
     def try_move(self, ix: int, iy: int, allow_push = True) -> bool:
-        return super().try_move(ix, iy) or (allow_push and self.try_push(ix, iy))
+        return super().try_move(ix, iy) or (allow_push and self.try_use(ix, iy))
 
     def tick(self) -> None:
         if self.cave.status != Cave.IN_PROGRESS: return
         for direction in self.player.list_directions():
             if self.try_move(*direction, False): return
         for direction in self.player.list_directions():
-            if self.try_push(*direction): return
+            if self.try_use(*direction): return
 
-    def try_push(self, ix:int, iy:int) -> bool:
-        pushed = self.neighbor(ix, iy)
-        if isinstance(pushed, Pushable):
-            if self.pushing == (ix, iy):
-                if pushed.try_move(ix, iy): 
-                    Pushable.sound.play()
+    def try_use(self, ix:int, iy:int) -> bool:
+        used = self.neighbor(ix, iy)
+        if isinstance(used, IActivable):
+            if self.using == (ix, iy):
+                if used.try_activate(self, ix, iy): 
                     return self.try_move(ix, iy)
             else:
                 self.dir = (ix, iy)
-                self.pushing = self.dir
+                self.using = self.dir
                 return self.try_wait()
         return False
 
@@ -368,11 +373,17 @@ class Insect(Creature, ICollectable):
         self.speed /= 2
         self.priority = Sprite.PRIORITY_LOW
         self.frightened = 0
+        self.rotation = 0
 
     def can_be_occupied(self, by: Sprite, ix: int, iy: int) -> bool: 
         return super().can_be_occupied(by, ix, iy) or isinstance(by, Miner)
     
-    def try_wander(self) -> bool: pass
+    def try_wander(self) -> bool:
+        (ix,iy) = self.dir
+        if self.rotation > 0:
+            return self.try_move(iy, -ix) or self.try_move(ix, iy) or self.try_move(-iy, ix) or self.try_move(-ix, -iy) or self.try_wait()
+        elif self.rotation < 0:
+            return self.try_move(-iy, ix) or self.try_move(ix, iy) or self.try_move(iy, -ix) or self.try_move(-ix, -iy) or self.try_wait()
 
     def collect(self) -> int :
        Diamond.sound_explosion.play()
@@ -403,21 +414,13 @@ class Firefly(Insect):
     ''' Simplest kind of insect. Wanders clockwise. '''
     def __init__(self, cave: Cave, x: int, y: int) -> None: 
         super().__init__(cave, x, y)
-        self.dir = (-1, 0)
-
-    def try_wander(self) -> bool:
-        (ix,iy) = self.dir
-        return self.try_move(-iy, ix) or self.try_move(ix, iy) or self.try_move(iy, -ix) or self.try_move(-ix, -iy) or self.try_wait()
+        self.dir = (-1, 0) ; self.rotation = -1
 
 class Butterfly(Insect):
     ''' An insect that explodes in diamonds. Wanders counter-clockwise. '''
     def __init__(self, cave: Cave, x: int, y: int) -> None:
         super().__init__(cave, x, y)
-        self.dir = (0, -1)
-
-    def try_wander(self) -> bool:
-        (ix,iy) = self.dir
-        return self.try_move(iy, -ix) or self.try_move(ix, iy) or self.try_move(-iy, ix) or self.try_move(-ix, -iy) or self.try_wait()
+        self.dir = (0, -1) ; self.rotation = +1
 
     def on_destroy(self) -> None: 
         if self.frightened == 0 or not isinstance(self.neighbor(0,0), Miner):

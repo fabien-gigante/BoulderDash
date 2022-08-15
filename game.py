@@ -236,10 +236,10 @@ class Cave:
         tile_type.sound_explosion.play()
         for x in range(cx - 1, cx + 2):
             for y in range(cy - 1, cy + 2):
+                (x,y) = self.wrap(x,y)
                 if self.within_bounds(x, y):
                     tile = self.at(x, y)
                     if tile is None or (not isinstance(tile, tile_type) and tile.can_break()):
-                        if self.geometry == Cave.GEO_TORE : (x,y) = (x % self.width, y % self.height)
                         self.set(x, y, tile_type(self, x, y))
                         if not tile is None: tile.on_destroy()
 
