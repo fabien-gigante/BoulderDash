@@ -43,6 +43,8 @@ class CrackedBoulder(Boulder, IFragile):
         self.crack_time = math.inf
         self.crack_type = crack_type if crack_type is not None else Explosion
 
+    def mutate(self) -> Tile: return Mineral(self.cave, self.x, self.y)
+
     def crack(self, by:Tile) -> None:
         super().crack(by)
         self.next_skin()
@@ -64,6 +66,7 @@ class Mineral(CrackedBoulder):
     ''' A cracked fragile boulder. Turns into a diamond when it breaks. '''
     sound_fall = Diamond.sound_fall
     def __init__(self, cave: Cave, x: int, y: int) -> None: super().__init__(cave, x, y, Diamond)
+    def mutate(self) -> Tile: return CrackedBoulder(self.cave, self.x, self.y)
 
 class Girl(Miner):
     ''' A female miner with a different skin... '''

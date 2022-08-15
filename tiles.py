@@ -170,22 +170,30 @@ class Weighted(Pushable):
 class Massive(Weighted, IRounded):
     ''' A tile so massive it can crush creatures. '''
     sound_fall = Sound(":resources:sounds/hurt2.wav")
+
     def end_fall(self, onto: Tile) -> None:
         super().end_fall(onto)
         type(self).sound_fall.play()
         if isinstance(onto, IFragile): onto.crack(self)
 
-class Boulder(Massive):
+class IMutable(Interface):
+    ''' Interface. Can be transformed into something else. '''
+    def mutate(self) -> Tile: return self
+
+class Boulder(Massive, IMutable):
     ''' A rock or boulder tile. '''
     def __init__(self, cave: Cave, x: int, y: int) -> None: super().__init__(cave, x, y)
+    def mutate(self) -> Tile: return Diamond(self.cave, self.x, self.y)
 
-class Diamond(Massive, ICollectable):
+class Diamond(Massive, ICollectable, IMutable):
     ''' A diamond tile. Unbreakable. Animated. The goal of the game is to collect them. '''
     sound = Sound(":resources:sounds/coin5.wav")
     sound_fall = Sound(":resources:sounds/coin4.wav")
     sound_explosion = Sound(":resources:sounds/secret4.wav")
+
     def __init__(self, cave: Cave, x: int, y: int, n: int = 4) -> None:
         super().__init__(cave, x, y, n)
+    def mutate(self) -> Tile: return Boulder(self.cave, self.x, self.y)
 
     def can_be_occupied(self, by: Tile, _ix: int, _iy: int) -> bool: return isinstance(by, Miner)
     def can_break(self) -> bool:  return False
@@ -397,10 +405,7 @@ class MagicWall(BrickWall):
         # won't be destroyed by falling rocks, do its magic instead !
         rock = self.neighbor(0, 0)
         if isinstance(rock, Weighted): 
-            if   isinstance(rock, CrackedBoulder): rock = Mineral(self.cave, self.x, self.y) 
-            elif isinstance(rock, Mineral): rock = CrackedBoulder(self.cave, self.x, self.y)
-            elif isinstance(rock, Boulder): rock = Diamond(self.cave, self.x, self.y)
-            elif isinstance(rock, Diamond): rock = Boulder(self.cave, self.x, self.y) 
+            if isinstance(rock, IMutable): rock = rock.mutate() ; rock.moving = True
             rock.tick() # continue its fall through...
             self.cave.set(self.x, self.y, self)
 
