@@ -25,8 +25,9 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="custom_tiles.py" />
     <Compile Include="game.py" />
-    <Compile Include="sprites.py" />
+    <Compile Include="tiles.py" />
     <Compile Include="caves.py" />
   </ItemGroup>
   <ItemGroup>

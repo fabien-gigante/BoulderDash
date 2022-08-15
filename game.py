@@ -4,8 +4,9 @@ import time
 import math
 import pyglet
 import arcade
-from sprites import *
 from caves import CAVES
+#from tiles import *
+from custom_tiles import *
 
 class Sound(arcade.Sound):
     ''' An audio media in the game. Preloaded. Played at moderate volume and at most once per frame (for a given sound). '''
@@ -89,7 +90,7 @@ class Torus(Geometry):
     def wrap(self, x: int, y: int, w:int, h: int) -> Tuple[int,int] : return (x%w, y%h)
 
 class Cave:
-    ''' The grid of tiles in which the game is played. Manages map loading and sprites updates. '''
+    ''' The grid of tiles in which the game is played. Manages map loading and tiles updates. '''
 
     WIDTH_MAX = 40
     WIDTH_MIN = 20
@@ -111,24 +112,18 @@ class Cave:
         self.game = game
         self.to_collect = 0 ; self.collected = 0
         self.status = Cave.NOT_LOADED ; self.wait = 0
-        self.tiles = [] ; self.back_tiles = []
+        self.front_tiles = [] ; self.back_tiles = []
         self.miner_type = None ; self.geometry = None
         self.height = self.width = 0
         self.time_remaining = 0
         self.next_level(1)
 
     def load(self) -> None:
-        types = {
-           'w': BrickWall, 'W': MetalWall, 'r': Boulder, 'd': Diamond, 'E': Entry, 'X': Exit,
-           'f': Firefly, 'b': Butterfly, 'a': Amoeba, 'm': MagicWall, 'e': ExpandingWall,
-           'k': CrackedBoulder, 'n': Mineral,'c': WoodCrate, 'h': MetalCrate, 't': CrateTarget, 'p': Portal,
-           'g': Energizer, '*': SmallDiamond, 'Z': BrickWall, 'l': Balloon,
-           '.': Soil, ' ': None, '_': None 
-        }
+        types = { ' ': None, '_': None, **Tile.registered } 
         self.to_collect = 0 ; self.collected = 0
         if self.status != Cave.GAME_OVER: self.status = Cave.STARTING    
         self.wait = 0
-        self.tiles = [] ; self.back_tiles = []
+        self.front_tiles = [] ; self.back_tiles = []
         cave = CAVES[self.level - 1]
         self.miner_type = globals()[cave['miner']] if 'miner' in cave else Miner
         self.height = len(cave['map'])
@@ -138,13 +133,13 @@ class Cave:
         self.time_remaining = cave['time'] if 'time' in cave else Cave.DEFAULT_MAXTIME
         for y in range(self.height):
             self.back_tiles.append([None for _ in range(self.width)])
-            self.tiles.append([])
+            self.front_tiles.append([])
             for x in range(self.width):
                 key = cave['map'][self.height -1 - y][x]
                 tile_type = types[key] if key in types else Unknown
                 tile = tile_type(self, x, y) if not tile_type is None else None
-                self.tiles[y].append(tile)
-        for sprite in self.sprites(): sprite.on_loaded()
+                self.front_tiles[y].append(tile)
+        for tile in self.tiles(): tile.on_loaded()
         self.game.on_loaded()
     
     def next_level(self, level : Optional[int] = None) -> None:
@@ -172,47 +167,47 @@ class Cave:
     def within_bounds(self, x: int ,y: int) -> bool:
         return x >= 0 and y >= 0 and x < self.width and y < self.height
 
-    def at(self, x: int , y: int) -> Optional['Sprite']:
+    def at(self, x: int , y: int, back: bool = False) -> Optional['Tile']:
         (x,y) = self.wrap(x,y)
-        return self.tiles[y][x] if self.within_bounds(x,y) else None
+        tiles = self.front_tiles if not back else self.back_tiles
+        return tiles[y][x] if self.within_bounds(x,y) else None
     
-    def set(self, x: int , y: int, sprite: Optional['Sprite'] ) -> Optional['Sprite']:
+    def set(self, x: int , y: int, tile: Optional['Tile'], back: bool = False) -> Optional['Tile']:
         (x,y) = self.wrap(x,y)
-        current = self.at(x, y)
-        if self.within_bounds(x,y): self.tiles[y][x] = sprite
+        current = self.at(x, y, back)
+        if self.within_bounds(x,y): 
+            tiles = self.front_tiles if not back else self.back_tiles
+            tiles[y][x] = tile
         return current
 
-    def replace(self, sprite : 'Sprite', by : Union['Sprite', type, None]) -> None:
-        if self.at(sprite.x, sprite.y) is sprite: # still there ?
-            self.set(sprite.x, sprite.y, by(self, sprite.x, sprite.y) if isinstance(by, type) else by)
-            sprite.on_destroy()
+    def replace(self, tile : 'Tile', by : Union['Tile', type, None]) -> None:
+        if self.at(tile.x, tile.y) is tile: # still there ?
+            self.set(tile.x, tile.y, by(self, tile.x, tile.y) if isinstance(by, type) else by)
+            tile.on_destroy()
 
-    def replace_all(self, cond: Optional[Union[int,type]], by: Union['Sprite', type, None]) -> None:
-        for sprite in self.sprites(cond): self.replace(sprite, by)
+    def replace_all(self, cond: Optional[Union[int,type]], by: Union['Tile', type, None]) -> None:
+        for tile in self.tiles(cond): self.replace(tile, by)
 
-    def can_move(self, sprite: 'Sprite', ix: int , iy: int) -> bool:
-        (x, y) = sprite.offset(ix, iy)
+    def can_move(self, actor: 'Tile', ix: int , iy: int) -> bool:
+        (x, y) = actor.offset(ix, iy)
         if not self.within_bounds(x, y): return False
-        tile = self.at(x,y)
-        return tile is None or tile.can_be_occupied(sprite, ix, iy)
+        current = self.at(x,y)
+        return current is None or current.can_be_occupied(actor, ix, iy)
 
-    def try_move(self, sprite: 'Sprite', ix: int , iy: int) -> bool:
-        if not sprite.can_move(ix, iy): return False
-        if (ix, iy) == (0, 0) and self.at(sprite.x, sprite.y) is sprite: return True
-        if self.at(sprite.x, sprite.y) is sprite: self.set(sprite.x, sprite.y, None)
-        (sprite.x, sprite.y) = sprite.offset(ix, iy)
-        tile = self.set(sprite.x, sprite.y, sprite)
-        sprite.on_moved(tile)
-        if tile is not None and self.at(sprite.x, sprite.y) != tile: tile.on_destroy()
+    def try_move(self, actor: 'Tile', ix: int , iy: int) -> bool:
+        if not actor.can_move(ix, iy): return False
+        current = self.at(actor.x, actor.y)
+        if (ix, iy) == (0, 0) and current is actor: return True
+        if current is actor: self.set(actor.x, actor.y, None)
+        (actor.x, actor.y) = actor.offset(ix, iy)
+        previous = self.set(actor.x, actor.y, actor)
+        actor.on_moved(previous)
+        if previous is not None and self.at(actor.x, actor.y) != previous: previous.on_destroy()
         return True
 
-    def sprites(self, cond: Optional[Union[int,type]] = None) -> Iterable['Sprite']:
-        for row in self.tiles:
-            for tile in row:
-                if tile is not None and tile.is_kind_of(cond): yield tile
-
-    def back_sprites(self, cond: Optional[Union[int,type]] = None) -> Iterable['Sprite']:
-        for row in self.back_tiles:
+    def tiles(self, cond: Optional[Union[int,type]] = None, back: bool = False) -> Iterable['Tile']:
+        tiles = self.front_tiles if not back else self.back_tiles
+        for row in tiles:
             for tile in row:
                 if tile is not None and tile.is_kind_of(cond): yield tile
 
@@ -227,9 +222,9 @@ class Cave:
             if self.wait <= 0:
                 if self.status == Cave.SUCCEEDED: self.next_level()
                 elif self.status == Cave.FAILED: self.restart_level()
-        for priority in [Sprite.PRIORITY_HIGH, Sprite.PRIORITY_MEDIUM, Sprite.PRIORITY_LOW]:
-            for sprite in self.sprites(priority): sprite.on_update(delta_time)
-        for update in Sprite.global_updates: update(self)
+        for priority in [Tile.PRIORITY_HIGH, Tile.PRIORITY_MEDIUM, Tile.PRIORITY_LOW]:
+            for tile in self.tiles(priority): tile.on_update(delta_time)
+        for update in Tile.global_updates: update(self)
 
     def explode(self, cx: int, cy: int, tile_type: Optional[type] = None) -> None:
         if tile_type is None: tile_type = Explosion
@@ -242,6 +237,10 @@ class Cave:
                     if tile is None or (not isinstance(tile, tile_type) and tile.can_break()):
                         self.set(x, y, tile_type(self, x, y))
                         if not tile is None: tile.on_destroy()
+                    back = self.at(x, y, True)
+                    if back is not None and back.can_break(): 
+                        self.set(x, y, None, True)
+                        back.on_destroy();
 
 class CaveView(arcade.View):
     ''' The main view of the game when in play. Renders the current cave. Manages cameras. '''
@@ -319,12 +318,12 @@ class CaveView(arcade.View):
     def on_update(self, delta_time):
         #start_time = time.time()
         self.game.cave.on_update(delta_time)
-        cave_sprites = { *self.game.cave.back_sprites(), *self.game.cave.sprites() }
+        cave_tiles = { *self.game.cave.tiles(None, True), *self.game.cave.tiles() }
         for s in self.sprite_list:
-            if not s in cave_sprites: self.sprite_list.remove(s)
-        for s in cave_sprites:             
+            if not s in cave_tiles: self.sprite_list.remove(s)
+        for s in cave_tiles:             
             if len(s.sprite_lists) == 0: self.sprite_list.append(s)
-        self.sprite_list.sort(key=lambda x: not isinstance(x, BackSprite))
+        self.sprite_list.sort(key=lambda x: not isinstance(x, BackTile))
         #print(f'on_update : {(time.time() - start_time) * 1000} ms')
 
 class Game(arcade.Window):
@@ -343,7 +342,7 @@ class Game(arcade.Window):
 
     def __init__(self):
         super().__init__(Game.WIDTH, Game.HEIGHT, Game.TITLE, vsync = True)
-        self.set_icon(pyglet.image.load(f'res/Miner{Sprite.TILE_SIZE}-0.png'))
+        self.set_icon(pyglet.image.load(f'res/Miner64-0.png'))
         self.keys = []
         self.controllers = []
         self.players = []
