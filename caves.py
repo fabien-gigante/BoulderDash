@@ -68,16 +68,16 @@ CAVES = [
         'goal': 11, 'miner': 'Girl',
         'map': [
             "WWWWWWWWWWWWWWWWWWWW",
-            "W..E...  ...r.k r..W",
+            "W..E...  ...r.k r.KW",
             "Wr.  h  n.....rd...W",
             "W...... ..  c......W",
             "W  n r k    e  k   W",
-            "W......r..w ...d...W",
-            "Wp ..c....w..r... pW",
+            "W......r... ...d...W",
+            "Wp ..c....L..r... pW",
             "W  k  e            W",
-            "Wk...td..   n... ..W",
-            "W.... ..r c ..n..llW",
-            "W..rd.........k.XttW",
+            "Wk...td..   n... llW",
+            "W.... ..r c ..n.WWWW",
+            "WK.rd.....tt..k.L XW",
             "WWWWWWWWWWWWWWWWWWWW"]
     },
     { # Level 24
