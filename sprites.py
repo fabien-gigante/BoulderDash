@@ -9,7 +9,7 @@ class Interface:
     ''' Pure abstract. To distinguish from standard classes. '''
 
 class Sprite(arcade.Sprite):
-    ''' An sprite in the game's cave. Manages skins, positioning, basic movement, timings, and update. '''
+    ''' A sprite in the game's cave. Manages skins, positioning, basic movement, timings, and update. '''
 
     TILE_SIZE = 64 # choose from 16, 64
     TILE_SCALE = Game.TILE_SIZE / TILE_SIZE
