@@ -231,7 +231,7 @@ class Entry(Tile):
                         self.cave.set_status(Cave.IN_PROGRESS)
                         break
         if self.neighbor(0,0) is self:
-            CrackedBoulder.sound.play()
+            IFragile.sound.play()
             self.cave.replace(self, Explosion)
         self.cave.replace_all(Entry, Explosion)
 
