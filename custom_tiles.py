@@ -1,9 +1,6 @@
-from typing import Optional, Union, Tuple
-import time
+from typing import Optional, Tuple
 import math
-import random
-import arcade
-from game import Game, Cave, Player, Sound
+from game import Cave, Player, Sound
 from tiles import *
 
 class BackTile(Tile):
@@ -49,14 +46,18 @@ class CrackedBoulder(Boulder, IFragile):
     def crack(self) -> None:
         super().crack()
         self.next_skin()
-        self.crack_time = time.time() + CrackedBoulder.WAIT_CRACK 
+        self.crack_time = CrackedBoulder.WAIT_CRACK 
 
     def end_fall(self, onto: Tile) -> None:
         super().end_fall(onto)
         self.crack()
 
+    def on_update(self, delta_time: float = 1/60) -> None:
+        self.crack_time -= delta_time
+        super().on_update(delta_time)
+
     def tick(self) -> None:
-        if time.time() >= self.crack_time : self.cave.replace(self, self.crack_type)
+        if self.crack_time <= 0 : self.cave.replace(self, self.crack_type)
         else: super().tick()
 
 class Mineral(CrackedBoulder):
