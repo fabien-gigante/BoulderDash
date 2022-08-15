@@ -1,93 +1,6 @@
-from typing import Optional, Union, Tuple
-import math
+﻿from typing import Optional
 import random
-import arcade
-from game import Game, Cave, Player, Sound
-
-class Interface:
-    ''' Pure abstract. To distinguish from standard classes. '''
-
-class Tile(arcade.Sprite):
-    ''' A tile in the game's cave. Manages skins, positioning, basic movement, timings, and update. '''
-
-    TILE_SIZE = 64 # choose from 16, 64
-    TILE_SCALE = Game.TILE_SIZE / TILE_SIZE
-    DEFAULT_SPEED = 10 # squares per second
-    PRIORITY_HIGH = 0
-    PRIORITY_MEDIUM = 1
-    PRIORITY_LOW = 2
-
-    registered = {}
-    global_updates = []
-    def __init__(self, cave: Cave, x: int, y: int, n: int = 1) -> None:
-        super().__init__(None, Tile.TILE_SCALE)
-        self.nb_skins = 0
-        for i in range(n): self.add_skin(type(self), i)
-        self.cave = cave ; self.x = x ; self.y = y ; self.dir = (0, 0)
-        self.wait = 0 ; self.speed = Tile.DEFAULT_SPEED
-        self.moved = self.moving = False ; self.priority = Tile.PRIORITY_MEDIUM
-        self.compute()
-
-    def add_skin(self, kind: Union[str, type], num: int, flip_h: bool = False, flip_v: bool = False) -> None: 
-        name = kind.__name__ if isinstance(kind, type) else kind
-        file_name = f'res/{name}{Tile.TILE_SIZE}-{num}.png'
-        try:
-            texture = arcade.load_texture(file_name, 0,0, Tile.TILE_SIZE, Tile.TILE_SIZE, flip_h, flip_v)
-            self.append_texture(texture) ; self.nb_skins += 1
-            if self.nb_skins == 1: self.set_skin(0)
-        except BaseException as err:
-            if isinstance(kind, type) and len(kind.__bases__) > 0:
-               self.add_skin(kind.__bases__[0], num, flip_h, flip_v)
-            else: raise Exception(f'Resource not found {file_name}', err)
-
-    def set_skin(self, i: int) -> None: self.skin = i; self.set_texture(i)
-    def next_skin(self) -> None: self.set_skin( (self.skin+1) % self.nb_skins )
-
-    def compute(self) -> None:
-        self.center_x = Tile.TILE_SIZE * Tile.TILE_SCALE * (self.x + 0.5)
-        self.center_y = Tile.TILE_SIZE * Tile.TILE_SCALE * (self.y + 0.5)
-    def focus(self, speed = 1) -> None:
-        self.cave.game.center_on(self.center_x, self.center_y, speed)
-
-    def position(self, observer: Optional['Tile'], ix: int, iy: int) -> Tuple[int,int]:
-        return (self.x ,self.y)
-    def offset(self, ix: int, iy: int) -> Tuple[int,int]:
-        (x, y) = self.cave.wrap(self.x + ix ,self.y + iy) ; tile = self.cave.at(x, y)
-        return (x, y) if tile is None else tile.position(self, ix, iy)
-    def neighbor(self, ix: int, iy: int) -> Optional['Tile'] :
-        return self.cave.at(*self.offset(ix,iy))
-
-    def is_kind_of(self, cond: Optional[Union[int, type]]):
-        return cond is None or (isinstance(cond, type) and isinstance(self, cond)) or self.priority == cond
-
-    def can_move(self, ix: int, iy: int)  -> bool:
-        return self.cave.can_move(self, ix, iy)
-
-    def try_move(self, ix: int, iy: int) -> bool:
-        self.dir = (ix, iy)
-        if self.cave.try_move(self, ix, iy):
-            self.compute() ; self.moved = True
-            return self.try_wait()
-        return False
-
-    def try_wait(self) -> bool:
-        self.wait = 1 / self.speed
-        return True
-
-    def on_update(self, delta_time: float = 1/60) -> None:
-        if self.wait > 0:  self.wait -= delta_time
-        else: self.moved = False ; self.tick() ; self.moving = self.moved
-
-    def tick(self): pass
-    def can_be_occupied(self, _by: 'Tile', _ix: int, _iy: int) -> bool: return False
-    def on_moved(self, _into: Optional['Tile']) -> None: pass
-    def can_break(self) -> bool:  return True
-    def on_destroy(self) -> None: pass
-    def on_loaded(self) -> None: pass
-
-class Unknown(Tile):
-    ''' Typically used to represent a tile not yet implemented. '''
-    def __init__(self, cave: Cave, x: int, y: int) -> None: super().__init__(cave, x, y)
+from game import Cave, Player, Sound, Tile, Interface
 
 class ICollectable(Interface):
     ''' Interface. Something that can be collected. '''
@@ -131,19 +44,19 @@ class ExpandingWall(Wall):
                 tile.try_move(ix, iy)
 
 class IActivable(Interface):
-    def try_activate(self, by: Tile, ix:int, iy:int) -> bool : return False
+    def try_activate(self, _by: Tile, _ix: int, _iy: int) -> bool : return False
                     
 class Pushable(Tile, IActivable):
     ''' An abstract tile that can be pushed by miners. '''
     sound = Sound(":resources:sounds/hurt1.wav")
-    def try_activate(self, by: Tile, ix:int, iy:int) -> bool : 
+    def try_activate(self, _by: Tile, ix:int, iy:int) -> bool : 
         if self.try_move(ix, iy): Pushable.sound.play() ; return True
         else: return False
 
 class IFragile(Interface):
     ''' Interface. Something that may crack (on react in some other way) when fallen upon. '''
     sound = Sound(":resources:sounds/hit4.wav")
-    def crack(self, by: Tile) -> None: IFragile.sound.play()
+    def crack(self, _by: Tile) -> None: IFragile.sound.play()
 
 class Weighted(Pushable):
     ''' An abstract tile subject to gravity. It falls down and rolls off rounded objects. '''
@@ -275,7 +188,7 @@ class Creature(Tile):
     def can_be_occupied(self, by: Tile, _ix: int, _iy: int) -> bool: 
         return isinstance(by, Massive) and by.moving
 
-    def on_destroy(self) -> None: self.cave.explode(self.x, self.y)
+    def on_destroy(self) -> None: self.cave.explode(self.x, self.y, Explosion)
 
 class Miner(Creature):
     ''' Main protagonist in the cave. Controled by a player. Can use tiles. '''
@@ -348,8 +261,8 @@ class Insect(Creature, ICollectable):
             return self.try_move(-iy, ix) or self.try_move(ix, iy) or self.try_move(iy, -ix) or self.try_move(-ix, -iy) or self.try_wait()
 
     def collect(self) -> int :
-       Diamond.sound_explosion.play()
-       return 5 if self.frightened > 0 else 0
+        Diamond.sound_explosion.play()
+        return 5 if self.frightened > 0 else 0
     
     def on_update(self, delta_time: float = 1/60) -> None:
         super().on_update(delta_time)
@@ -448,9 +361,10 @@ class Amoeba(Tile):
             cave.replace_all(Amoeba, Boulder)
             Boulder.sound_fall.play()
 
-Tile.global_updates.append(Amoeba.on_global_update)
-
-Tile.registered = {
-   **Tile.registered, 
-   '.': Soil, 'w': BrickWall, 'W': MetalWall, 'r': Boulder, 'd': Diamond, 'E': Entry, 'X': Exit,
-   'f': Firefly, 'b': Butterfly, 'a': Amoeba, 'm': MagicWall, 'e': ExpandingWall }
+# Registrations
+def register(registry):
+    registry.global_updates.append(Amoeba.on_global_update)
+    registry.registered_tiles = {
+        **registry.registered_tiles,
+        '♂': Miner, '.': Soil, 'w': BrickWall, 'W': MetalWall, 'r': Boulder, 'd': Diamond, 'E': Entry, 'X': Exit,
+        'f': Firefly, 'b': Butterfly, 'a': Amoeba, 'm': MagicWall, 'e': ExpandingWall }
