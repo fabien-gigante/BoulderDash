@@ -15,7 +15,7 @@ class Sound(arcade.Sound):
     def __init__(self, file: str) -> None: 
         super().__init__(file)
         self.last_played = -math.inf
-        super().play(0).delete() # force audio preloading
+        super().play(0).delete() # force audio preloading (is it necessary ?)
     def play(self, volume = VOLUME, pan: float = 0.0, loop: bool = False, speed: float = 1.0):
         now = time.time()
         if (now - self.last_played < Sound.MAX_RATE): return

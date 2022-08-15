@@ -362,7 +362,6 @@ MigrationBackup/
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
 
-# Nuitka builds
-/boulder_dash.build
-/boulder_dash.cmd
+# Perf analysis
+*.pyperf
 /run.lnk
