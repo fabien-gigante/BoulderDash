@@ -1,26 +1,115 @@
-from typing import Optional, Union, Tuple, List, Iterable
+﻿from typing import Optional, Union, Tuple, List, Iterable
 from collections import namedtuple
 import time
 import math
 import pyglet
 import arcade
-from caves import CAVES
-#from tiles import *
-from custom_tiles import *
 
-class Sound(arcade.Sound):
-    ''' An audio media in the game. Preloaded. Played at moderate volume and at most once per frame (for a given sound). '''
+class Sound:
+    ''' An audio media in the game. Played at moderate volume and at most once per frame (for a given sound). '''
     VOLUME = 0.5
     MAX_RATE = 1/60 # sec
-    def __init__(self, file: str) -> None: 
-        super().__init__(file)
-        self.last_played = -math.inf
-        super().play(0).delete() # force audio preloading (is it necessary ?)
+
+    def __init__(self, file: str) -> None:
+        self.file = file ; self.media = None ; self.last_played = -math.inf
+        #self.load() # force audio preloading (is it necessary ?)
+
+    def load(self) -> None: 
+        if self.media is None:
+            #print('Loading sound ' + self.file, end = '', flush = True)
+            self.media = arcade.Sound(self.file)
+            #self.media.play(0).delete() # force audio preloading (is it necessary ?)
+            #print(' ...')
+
     def play(self, volume = VOLUME, pan: float = 0.0, loop: bool = False, speed: float = 1.0):
+        if self.media is None: self.load()
         now = time.time()
         if (now - self.last_played < Sound.MAX_RATE): return
         self.last_played = now
-        return super().play(volume, pan, loop, speed)
+        return self.media.play(volume, pan, loop, speed)
+
+class Interface:
+    ''' Pure abstract. To distinguish from standard classes. '''
+
+class Tile(arcade.Sprite):
+    ''' A tile in the game's cave. Manages skins, positioning, basic movement, timings, and update. '''
+
+    TILE_SIZE = 64 # choose from 16, 64
+    DEFAULT_SPEED = 10 # squares per second
+    PRIORITY_HIGH = 0
+    PRIORITY_MEDIUM = 1
+    PRIORITY_LOW = 2
+
+    registered = {}
+    global_updates = []
+    def __init__(self, cave: 'Cave', x: int, y: int, n: int = 1) -> None:
+        super().__init__(None, Game.TILE_SIZE / Tile.TILE_SIZE)
+        self.nb_skins = 0 ; self.skin = None
+        for i in range(n): self.add_skin(type(self), i)
+        self.cave = cave ; self.x = x ; self.y = y ; self.dir = (0, 0)
+        self.wait = 0 ; self.speed = Tile.DEFAULT_SPEED
+        self.moved = self.moving = False ; self.priority = Tile.PRIORITY_MEDIUM
+        self.compute()
+
+    def add_skin(self, kind: Union[str, type], num: int, flip_h: bool = False, flip_v: bool = False) -> None: 
+        name = kind.__name__ if isinstance(kind, type) else kind
+        file_name = f'res/{name}{Tile.TILE_SIZE}-{num}.png'
+        try:
+            texture = arcade.load_texture(file_name, 0,0, Tile.TILE_SIZE, Tile.TILE_SIZE, flip_h, flip_v)
+            self.append_texture(texture) ; self.nb_skins += 1
+            if self.nb_skins == 1: self.set_skin(0)
+        except FileNotFoundError as err:
+            if isinstance(kind, type) and len(kind.__bases__) > 0:
+                self.add_skin(kind.__bases__[0], num, flip_h, flip_v)
+            else: raise err
+    def set_skin(self, i: int) -> None: self.skin = i; self.set_texture(i)
+    def next_skin(self) -> None: self.set_skin( (self.skin+1) % self.nb_skins )
+
+    def compute(self) -> None:
+        self.center_x = Game.TILE_SIZE * (self.x + 0.5)
+        self.center_y = Game.TILE_SIZE * (self.y + 0.5)
+    def focus(self, speed = 1) -> None:
+        self.cave.game.center_on(self.center_x, self.center_y, speed)
+
+    def pos(self, _observer: Optional['Tile'], _ix: int, _iy: int) -> Tuple[int,int]:
+        return (self.x ,self.y)
+    def offset(self, ix: int, iy: int) -> Tuple[int,int]:
+        (x, y) = self.cave.wrap(self.x + ix ,self.y + iy) ; tile = self.cave.at(x, y)
+        return (x, y) if tile is None else tile.pos(self, ix, iy)
+    def neighbor(self, ix: int, iy: int) -> Optional['Tile'] :
+        return self.cave.at(*self.offset(ix,iy))
+
+    def is_kind_of(self, cond: Optional[Union[int, type]]):
+        return cond is None or (isinstance(cond, type) and isinstance(self, cond)) or self.priority == cond
+
+    def can_move(self, ix: int, iy: int)  -> bool:
+        return self.cave.can_move(self, ix, iy)
+
+    def try_move(self, ix: int, iy: int) -> bool:
+        self.dir = (ix, iy)
+        if self.cave.try_move(self, ix, iy):
+            self.compute() ; self.moved = True
+            return self.try_wait()
+        return False
+
+    def try_wait(self) -> bool:
+        self.wait = 1 / self.speed
+        return True
+
+    def on_update(self, delta_time: float = 1/60) -> None:
+        if self.wait > 0:  self.wait -= delta_time
+        else: self.moved = False ; self.tick() ; self.moving = self.moved
+
+    def tick(self): pass
+    def can_be_occupied(self, _by: 'Tile', _ix: int, _iy: int) -> bool: return False
+    def on_moved(self, _into: Optional['Tile']) -> None: pass
+    def can_break(self) -> bool:  return True
+    def on_destroy(self) -> None: pass
+    def on_loaded(self) -> None: pass
+
+class Unknown(Tile):
+    ''' Typically used to represent a tile not yet implemented. '''
+    def __init__(self, cave: 'Cave', x: int, y: int) -> None: super().__init__(cave, x, y)
 
 class Player:
     ''' A player in the Boulder Dash game. Handles controls, score and lifes. '''
@@ -83,7 +172,7 @@ class Player:
 
 class Geometry:
     ''' Defines how the space wraps around. By default, it doesn't. '''
-    def wrap(self, x: int, y: int, w:int, h: int) -> Tuple[int,int] : return (x, y)
+    def wrap(self, x: int, y: int, _w:int, _h: int) -> Tuple[int,int] : return (x, y)
 
 class Torus(Geometry):
     ''' On a torus, opposite sides are identified. '''
@@ -108,6 +197,8 @@ class Cave:
     WAIT_STATUS = 0.75 # seconds
     DEFAULT_MAXTIME = 120 # seconds
 
+    from caves import CAVES
+
     def __init__(self, game: 'Game') -> None:
         self.game = game
         self.to_collect = 0 ; self.collected = 0
@@ -124,11 +215,12 @@ class Cave:
         if self.status != Cave.GAME_OVER: self.status = Cave.STARTING    
         self.wait = 0
         self.front_tiles = [] ; self.back_tiles = []
-        cave = CAVES[self.level - 1]
-        self.miner_type = globals()[cave['miner']] if 'miner' in cave else Miner
+        cave = Cave.CAVES[self.level - 1]
+        type_name = cave['miner'] if 'miner' in cave else 'Miner'
+        self.miner_type = next(types[key] for key in types if types[key] is not None and types[key].__name__ == type_name)
         self.height = len(cave['map'])
         self.width = len(cave['map'][0])
-        self.to_collect = cave['goal'] ; 
+        self.to_collect = cave['goal']
         self.geometry = globals()[cave['geometry']]() if 'geometry' in cave else Geometry()
         self.time_remaining = cave['time'] if 'time' in cave else Cave.DEFAULT_MAXTIME
         for y in range(self.height):
@@ -144,8 +236,8 @@ class Cave:
     
     def next_level(self, level : Optional[int] = None) -> None:
         self.level = self.level + 1 if level is None else level
-        if self.level < 1 : self.level += len(CAVES)
-        elif self.level > len(CAVES) : self.level -= len(CAVES)
+        if self.level < 1 : self.level += len(Cave.CAVES)
+        elif self.level > len(Cave.CAVES) : self.level -= len(Cave.CAVES)
         self.load()
 
     def restart_level(self) -> None: self.next_level(self.level)
@@ -154,8 +246,8 @@ class Cave:
         return self.collected >= self.to_collect
     
     def pause(self) -> None:
-        if self.status == Cave.IN_PROGRESS: self.status = Cave.PAUSED;
-        elif self.status == Cave.PAUSED: self.status = Cave.IN_PROGRESS;
+        if self.status == Cave.IN_PROGRESS: self.status = Cave.PAUSED
+        elif self.status == Cave.PAUSED: self.status = Cave.IN_PROGRESS
 
     def set_status(self, status) -> None:
         self.status = status
@@ -226,8 +318,7 @@ class Cave:
             for tile in self.tiles(priority): tile.on_update(delta_time)
         for update in Tile.global_updates: update(self)
 
-    def explode(self, cx: int, cy: int, tile_type: Optional[type] = None) -> None:
-        if tile_type is None: tile_type = Explosion
+    def explode(self, cx: int, cy: int, tile_type: type) -> None:
         tile_type.sound_explosion.play()
         for x in range(cx - 1, cx + 2):
             for y in range(cy - 1, cy + 2):
@@ -240,7 +331,7 @@ class Cave:
                     back = self.at(x, y, True)
                     if back is not None and back.can_break(): 
                         self.set(x, y, None, True)
-                        back.on_destroy();
+                        back.on_destroy()
 
 class CaveView(arcade.View):
     ''' The main view of the game when in play. Renders the current cave. Manages cameras. '''
@@ -345,7 +436,7 @@ class Game(arcade.Window):
 
     def __init__(self):
         super().__init__(Game.WIDTH, Game.HEIGHT, Game.TITLE, vsync = True)
-        self.set_icon(pyglet.image.load(f'res/Miner64-0.png'))
+        self.set_icon(pyglet.image.load('res/Miner64-0.png'))
         self.keys = []
         self.controllers = []
         self.players = []
@@ -364,16 +455,16 @@ class Game(arcade.Window):
         self.create_players() ; self.cave = Cave(self)
         arcade.set_background_color(arcade.color.BLACK)
         self.show_view(CaveView(self))
-        self.toggle_music()
+        #self.toggle_music()
     
     def toggle_music(self) -> None:
         if self.music_player == None: 
             self.music_player = Game.music.play(0.1, 0, True)
             if self.cave.status == Cave.PAUSED: self.music_player.pause()
-        else: self.music_player.delete() ; self.music_player = None;
+        else: self.music_player.delete() ; self.music_player = None
 
     def pause(self) -> None:
-        self.cave.pause();
+        self.cave.pause()
         if self.music_player != None:
             if self.cave.status == Cave.PAUSED: self.music_player.pause()
             else: self.music_player.play()
@@ -393,7 +484,7 @@ class Game(arcade.Window):
         elif (symbol == arcade.key.NUM_DIVIDE  or symbol == arcade.key.F3): 
             self.create_players(len(self.players) % 4 + 1) ; self.cave.restart_level()
         elif (symbol == arcade.key.ENTER or symbol == arcade.key.F11 or (symbol == arcade.key.ESCAPE and self.fullscreen) ):
-           self.set_fullscreen(not self.fullscreen)
+            self.set_fullscreen(not self.fullscreen)
         elif symbol == arcade.key.F9: self.toggle_music()
         elif symbol == arcade.key.SPACE: self.pause()
 
@@ -408,4 +499,6 @@ def main() -> None:
     arcade.run()
 
 if __name__ == '__main__':
+    from tiles import *
+    from custom_tiles import *
     main()

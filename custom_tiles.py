@@ -1,7 +1,7 @@
-from typing import Optional, Tuple
+﻿from typing import Optional, Tuple
 import math
-from game import Cave, Player, Sound
-from tiles import *
+from game import Interface, Sound, Player, Cave, Tile
+from tiles import ICollectable, IActivable, IRounded, IFragile, Explosion, Diamond, Weighted, Massive, Pushable, Boulder, Miner, Insect, MetalWall, Exit
 
 class BackTile(Tile):
     ''' A static background tile. Lies on the floor, below normal plates. '''
@@ -31,8 +31,8 @@ class Energizer(Diamond):
 class Balloon(Weighted, IRounded):
     ''' A balloon tile lighter than air. Falls upwards. '''
     def __init__(self, cave: Cave, x: int, y: int) -> None:
-       super().__init__(cave, x, y)
-       self.gravity = +1
+        super().__init__(cave, x, y)
+        self.gravity = +1
 
 class CrackedBoulder(Boulder, IFragile):
     ''' A fragile boulder. Breaks when falling or being hit. '''
@@ -87,7 +87,7 @@ class Portal(Tile):
             Portal.next_link = None
 
     def can_break(self) -> bool:  return False
-    def position(self, observer: Optional['Tile'], ix: int, iy: int) -> Tuple[int,int]:
+    def pos(self, _observer: Optional['Tile'], ix: int, iy: int) -> Tuple[int,int]:
         return self.link.offset(ix, iy)
 
 class Crate(Pushable):
@@ -109,14 +109,13 @@ class Crate(Pushable):
                 cave.replace(crate, Diamond)
             Diamond.sound_explosion.play()
 
-Tile.global_updates.append(Crate.on_global_update)
 
 class WoodCrate(Crate):
     ''' A fragile wodden crate. Explodes when hit. '''
     def can_be_occupied(self, by: Tile, _ix: int, _iy: int) -> bool: 
         return isinstance(by, Massive) and by.moving
     def on_destroy(self) -> None:
-        if not self.solved: self.cave.explode(self.x, self.y)
+        if not self.solved: self.cave.explode(self.x, self.y, Explosion)
 
 class MetalCrate(Crate):
     ''' A metal crate. Unbreakable. '''
@@ -135,13 +134,13 @@ class Door(MetalWall):
     def toggle(self) -> None : 
         self.opened = not self.opened
         self.next_skin()
-    def position(self, observer: Optional['Tile'], ix: int, iy: int) -> Tuple[int,int]:
+    def pos(self, observer: Optional['Tile'], ix: int, iy: int) -> Tuple[int,int]:
         if self.opened: return self.offset(ix, iy)
-        return super().position(observer, ix, iy)
+        return super().pos(observer, ix, iy)
 
 class ActivableDoor(Door, IActivable):
     ''' A door that can be opened when activated. '''
-    def try_activate(self, by: Tile, ix:int, iy:int) -> bool : 
+    def try_activate(self, _by: Tile, _ix:int, _iy:int) -> bool : 
         self.toggle()
         return True
 
@@ -150,7 +149,7 @@ class LockedDoor(Door):
     def __init__(self, cave: Cave, x: int, y: int) -> None:
         super().__init__(cave, x, y, 0)
         self.id = len([*self.cave.tiles(LockedDoor)]) % 3
-        self.add_skin(type(self), self.id);
+        self.add_skin(type(self), self.id)
     def unlock(self, key: 'Key') -> None :
         if self.id == key.id: 
             Exit.sound.play()
@@ -161,40 +160,44 @@ class Key(Tile, ICollectable):
     def __init__(self, cave: Cave, x: int, y: int) -> None:
         super().__init__(cave, x, y, 0)
         self.id = len([*self.cave.tiles(Key)]) % 3
-        self.add_skin(type(self), self.id);
+        self.add_skin(type(self), self.id)
     def can_be_occupied(self, by: Tile, _ix: int, _iy: int) -> bool: return isinstance(by, Miner)
     def collect(self) -> int :
         for door in self.cave.tiles(LockedDoor): door.unlock(self)
         return 0
 
 class ITriggerable(Interface):
+    ''' Interface. Something that can be triggered remotely. '''
     def trigger(self, by: Tile) -> None: pass
 
 class TriggeredDoor(Door, ITriggerable):
-    ''' A closed door that can only be opened by a remote trigger (such as a switch) '''
+    ''' A closed door that can only be opened by a remote lever. '''
     def __init__(self, cave: Cave, x: int, y: int) -> None:
         super().__init__(cave, x, y, 0)
         self.id = len([*self.cave.tiles(TriggeredDoor)]) % 3
-        self.add_skin(type(self), self.id);
-        self.add_skin(Door, 1);
+        self.add_skin(type(self), self.id)
+        self.add_skin(Door, 1)
     def trigger(self, by: Tile) -> None : 
         if self.id == by.id: self.toggle()
 
 class Lever(Tile, IActivable, IFragile):
+    ''' A lever tile that can trigger its pair triggered door. '''
     def __init__(self, cave: Cave, x: int, y: int) -> None:
         super().__init__(cave, x, y, 0)
         self.id = len([*self.cave.tiles(Lever)]) % 3
-        self.add_skin(type(self), self.id);
-        self.add_skin(type(self), self.id, True);
-    def try_activate(self, by: Tile, ix:int, iy:int) -> bool : self.toggle(by) ; return True
+        self.add_skin(type(self), self.id)
+        self.add_skin(type(self), self.id, True)
+    def try_activate(self, by: Tile, _ix:int, _iy:int) -> bool : self.toggle(by) ; return True
     def crack(self, by: Tile) -> None: self.toggle(by)
-    def toggle(self, by: Tile) -> None:
+    def toggle(self, _by: Tile) -> None:
         self.next_skin()
         IFragile.sound.play()
         for door in self.cave.tiles(TriggeredDoor): door.trigger(self)
 
+# Registrations
+Tile.global_updates.append(Crate.on_global_update)
 Tile.registered = {
    **Tile.registered, 
    'k': CrackedBoulder, 'n': Mineral,'c': WoodCrate, 'h': MetalCrate, '+': CrateTarget, 
-   'l': Balloon, 'p': Portal, 'g': Energizer, '*': SmallDiamond,
+   '♀': Girl, 'l': Balloon, 'p': Portal, 'g': Energizer, '*': SmallDiamond,
    'D': ActivableDoor, 'L': LockedDoor, '%': Key, 'T': TriggeredDoor, '/': Lever }
