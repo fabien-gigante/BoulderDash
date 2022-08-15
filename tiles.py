@@ -23,7 +23,6 @@ class Tile(arcade.Sprite):
         super().__init__(None, Tile.TILE_SCALE)
         self.nb_skins = 0
         for i in range(n): self.add_skin(type(self).__name__, i)
-        if n > 0: self.set_skin(0)
         self.cave = cave ; self.x = x ; self.y = y ; self.dir = (0, 0)
         self.wait = 0 ; self.speed = Tile.DEFAULT_SPEED
         self.moved = self.moving = False ; self.priority = Tile.PRIORITY_MEDIUM
@@ -32,6 +31,7 @@ class Tile(arcade.Sprite):
     def add_skin(self, name: str, num: int, flip_h: bool = False, flip_v: bool = False) -> None: 
         texture = arcade.load_texture(f'res/{name}{Tile.TILE_SIZE}-{num}.png', 0,0, Tile.TILE_SIZE, Tile.TILE_SIZE, flip_h, flip_v)
         self.append_texture(texture) ; self.nb_skins += 1
+        if self.nb_skins == 1: self.set_skin(0)
     def set_skin(self, i: int) -> None: self.skin = i; self.set_texture(i)
     def next_skin(self) -> None: self.set_skin( (self.skin+1) % self.nb_skins )
 
@@ -133,9 +133,9 @@ class Pushable(Tile, IActivable):
         else: return False
 
 class IFragile(Interface):
-    ''' Interface. Something that can crack. '''
+    ''' Interface. Something that may crack (on react in some other way) when fallen upon. '''
     sound = Sound(":resources:sounds/hit4.wav")
-    def crack(self) -> None: IFragile.sound.play()
+    def crack(self, by: Tile) -> None: IFragile.sound.play()
 
 class Weighted(Pushable):
     ''' An abstract tile subject to gravity. It falls down and rolls off rounded objects. '''
@@ -165,7 +165,7 @@ class Massive(Weighted, IRounded):
     def end_fall(self, onto: Tile) -> None:
         super().end_fall(onto)
         type(self).sound_fall.play()
-        if isinstance(onto, IFragile): onto.crack()
+        if isinstance(onto, IFragile): onto.crack(self)
 
 class Boulder(Massive):
     ''' A rock or boulder tile. '''
@@ -211,7 +211,6 @@ class Entry(Tile):
     def __init__(self, cave: Cave, x: int, y: int) -> None:
         super().__init__(cave, x, y, 0)
         self.add_skin(Exit.__name__, 1)
-        self.set_skin(0)
         self.wait = Entry.WAIT_OPEN
         self.once = False
 
@@ -301,6 +300,7 @@ class Miner(Creature):
         if isinstance(used, IActivable):
             if self.using == (ix, iy):
                 if used.try_activate(self, ix, iy): 
+                    self.using = None
                     return self.try_move(ix, iy, False) or self.try_wait()
             else:
                 self.dir = (ix, iy)

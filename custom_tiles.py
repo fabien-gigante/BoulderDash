@@ -43,14 +43,14 @@ class CrackedBoulder(Boulder, IFragile):
         self.crack_time = math.inf
         self.crack_type = crack_type if crack_type is not None else Explosion
 
-    def crack(self) -> None:
-        super().crack()
+    def crack(self, by:Tile) -> None:
+        super().crack(by)
         self.next_skin()
         self.crack_time = CrackedBoulder.WAIT_CRACK 
 
     def end_fall(self, onto: Tile) -> None:
         super().end_fall(onto)
-        self.crack()
+        self.crack(onto)
 
     def on_update(self, delta_time: float = 1/60) -> None:
         self.crack_time -= delta_time
@@ -123,40 +123,78 @@ class CrateTarget(BackTile):
     ''' A background tile representing a target position for a crate. Crates must be placed on those tiles. '''
     def is_placed(self) -> bool:return isinstance(self.neighbor(0, 0), Crate)
 
-class Door(MetalWall, IActivable):
+class Door(MetalWall):
     ''' A door that can be opened when activated. '''
-    def __init__(self, cave: Cave, x: int, y: int) -> None:
-        super().__init__(cave, x, y, 2)
+    def __init__(self, cave: Cave, x: int, y: int, n: int = 2) -> None:
+        super().__init__(cave, x, y, n)
         self.opened = False
     def can_break(self) -> bool:  return False
-    def try_activate(self, by: Tile, ix:int, iy:int) -> bool : 
+    def toggle(self) -> None : 
         self.opened = not self.opened
         self.next_skin()
-        return True
     def position(self, observer: Optional['Tile'], ix: int, iy: int) -> Tuple[int,int]:
         if self.opened and iy == 0: return self.offset(ix, iy)
         return super().position(observer, ix, iy)
 
-class LockedDoor(MetalWall, ICollectable):
+class ActivableDoor(Door, IActivable):
+    def __init__(self, cave: Cave, x: int, y: int) -> None:
+        super().__init__(cave, x, y, 0)
+        self.add_skin(Door.__name__, 0);
+        self.add_skin(Door.__name__, 1);
+    def try_activate(self, by: Tile, ix:int, iy:int) -> bool : 
+        self.toggle()
+        return True
+
+class LockedDoor(Door):
     ''' A locked door that unlocks only when the corresponding key is collected. '''
     def __init__(self, cave: Cave, x: int, y: int) -> None:
-        super().__init__(cave, x, y, 3)
-        self.set_skin(len([*self.cave.tiles(LockedDoor)]) % self.nb_skins)
+        super().__init__(cave, x, y, 0)
+        self.id = len([*self.cave.tiles(LockedDoor)]) % 3
+        self.add_skin(type(self).__name__, self.id);
     def unlock(self, key: 'Key') -> None :
-        Exit.sound.play()
-        if self.skin == key.skin: self.cave.replace(self, Door)
+        if self.id == key.id: 
+            Exit.sound.play()
+            self.cave.replace(self, ActivableDoor)
 
 class Key(Tile, ICollectable):
     ''' A collectable tile representing a key. Unlocks corresponding locked doors. '''
     def __init__(self, cave: Cave, x: int, y: int) -> None:
-        super().__init__(cave, x, y, 3)
-        self.set_skin(len([*self.cave.tiles(Key)]) % self.nb_skins)
+        super().__init__(cave, x, y, 0)
+        self.id = len([*self.cave.tiles(Key)]) % 3
+        self.add_skin(type(self).__name__, self.id);
     def can_be_occupied(self, by: Tile, _ix: int, _iy: int) -> bool: return isinstance(by, Miner)
     def collect(self) -> int :
         for door in self.cave.tiles(LockedDoor): door.unlock(self)
         return 0
 
+class ITriggerable(Interface):
+    def trigger(self, by: Tile) -> None: pass
+
+class TriggeredDoor(Door, ITriggerable):
+    ''' A closed door that can only be opened by a remote trigger (such as a switch) '''
+    def __init__(self, cave: Cave, x: int, y: int) -> None:
+        super().__init__(cave, x, y, 0)
+        self.id = len([*self.cave.tiles(TriggeredDoor)]) % 3
+        self.add_skin(type(self).__name__, self.id);
+        self.add_skin(Door.__name__, 1);
+    def trigger(self, by: Tile) -> None : 
+        if self.id == by.id: self.toggle()
+
+class Lever(Tile, IActivable, IFragile):
+    def __init__(self, cave: Cave, x: int, y: int) -> None:
+        super().__init__(cave, x, y, 0)
+        self.id = len([*self.cave.tiles(Lever)]) % 3
+        self.add_skin(type(self).__name__, self.id);
+        self.add_skin(type(self).__name__, self.id, True);
+    def try_activate(self, by: Tile, ix:int, iy:int) -> bool : self.toggle(by) ; return True
+    def crack(self, by: Tile) -> None: self.toggle(by)
+    def toggle(self, by: Tile) -> None:
+        self.next_skin()
+        IFragile.sound.play()
+        for door in self.cave.tiles(TriggeredDoor): door.trigger(self)
+
 Tile.registered = {
    **Tile.registered, 
-   'k': CrackedBoulder, 'n': Mineral,'c': WoodCrate, 'h': MetalCrate, 't': CrateTarget, 'p': Portal,
-   'g': Energizer, '*': SmallDiamond, 'Z': BrickWall, 'l': Balloon, 'D': Door, 'L': LockedDoor, 'K': Key }
+   'k': CrackedBoulder, 'n': Mineral,'c': WoodCrate, 'h': MetalCrate, '+': CrateTarget, 
+   'l': Balloon, 'p': Portal, 'g': Energizer, '*': SmallDiamond,
+   'D': ActivableDoor, 'L': LockedDoor, '%': Key, 'T': TriggeredDoor, '/': Lever }
