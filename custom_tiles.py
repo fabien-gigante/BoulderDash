@@ -24,7 +24,7 @@ class Energizer(Diamond):
     TIME_OUT = 5
     def collect(self) -> int:
         Player.sound.play()
-        for insect in self.cave.tiles(Insect): 
+        for insect in self.cave.tiles(Insect):
             insect.frightened = Energizer.TIME_OUT
             (ix,iy) = insect.dir ; insect.dir = (-ix,-iy)
         return super().collect()
@@ -38,7 +38,7 @@ class Balloon(Weighted, IRounded):
 class CrackedBoulder(Boulder, IFragile):
     ''' A fragile boulder. Breaks when falling or being hit. '''
     WAIT_CRACK = .125 # sec
-    def __init__(self, cave: Cave, x: int, y: int, crack_type = None) -> None: 
+    def __init__(self, cave: Cave, x: int, y: int, crack_type = None) -> None:
         super().__init__(cave, x, y)
         self.add_skin(type(self), 0, True)
         self.crack_time = math.inf
@@ -49,7 +49,7 @@ class CrackedBoulder(Boulder, IFragile):
     def crack(self, by:Tile) -> None:
         super().crack(by)
         self.next_skin()
-        self.crack_time = CrackedBoulder.WAIT_CRACK 
+        self.crack_time = CrackedBoulder.WAIT_CRACK
 
     def end_fall(self, onto: Tile) -> None:
         super().end_fall(onto)
@@ -124,7 +124,7 @@ class MetalCrate(Crate):
 
 class CrateTarget(BackTile):
     ''' A background tile representing a target position for a crate. Crates must be placed on those tiles. '''
-    def is_placed(self) -> bool:return isinstance(self.neighbor(0, 0), Crate)
+    def is_placed(self) -> bool: return isinstance(self.neighbor(0, 0), Crate)
 
 class Door(MetalWall):
     ''' A generic abstract door. Can be passed through when opened. '''
@@ -132,7 +132,7 @@ class Door(MetalWall):
         super().__init__(cave, x, y, n)
         self.opened = False
     def can_break(self) -> bool:  return False
-    def toggle(self) -> None : 
+    def toggle(self) -> None :
         self.opened = not self.opened
         self.next_skin()
     def pos(self, observer: Optional['Tile'], ix: int, iy: int) -> Tuple[int,int]:
@@ -141,7 +141,7 @@ class Door(MetalWall):
 
 class ActivableDoor(Door, IActivable):
     ''' A door that can be opened when activated. '''
-    def try_activate(self, _by: Tile, _ix:int, _iy:int) -> bool : 
+    def try_activate(self, _by: Tile, _ix:int, _iy:int) -> bool :
         self.toggle()
         return True
 

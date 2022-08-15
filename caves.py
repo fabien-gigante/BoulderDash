@@ -1,3 +1,4 @@
+''' Definitions of all official and custom maps '''
 
 CAVES = [
 

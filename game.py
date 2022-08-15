@@ -24,7 +24,7 @@ class Sound:
     def play(self, volume = VOLUME, pan: float = 0.0, loop: bool = False, speed: float = 1.0):
         if self.media is None: self.load()
         now = time.time()
-        if (now - self.last_played < Sound.MAX_RATE): return
+        if (now - self.last_played < Sound.MAX_RATE): return None
         self.last_played = now
         return self.media.play(volume, pan, loop, speed)
 
@@ -217,7 +217,7 @@ class Cave:
         self.front_tiles = [] ; self.back_tiles = []
         cave = Cave.CAVES[self.level - 1]
         type_name = cave['miner'] if 'miner' in cave else 'Miner'
-        self.miner_type = next(types[key] for key in types if types[key] is not None and types[key].__name__ == type_name)
+        self.miner_type = next(value for (_, value) in types.items() if value is not None and value.__name__ == type_name)
         self.height = len(cave['map'])
         self.width = len(cave['map'][0])
         self.to_collect = cave['goal']
@@ -233,7 +233,7 @@ class Cave:
                 self.front_tiles[y].append(tile)
         for tile in self.tiles(): tile.on_loaded()
         self.game.on_loaded()
-    
+
     def next_level(self, level : Optional[int] = None) -> None:
         self.level = self.level + 1 if level is None else level
         if self.level < 1 : self.level += len(Cave.CAVES)
@@ -257,19 +257,19 @@ class Cave:
         return self.geometry.wrap(x, y, self.width, self.height)
 
     def within_bounds(self, x: int ,y: int) -> bool:
-        return x >= 0 and y >= 0 and x < self.width and y < self.height
+        return 0 <= x < self.width and 0 <= y < self.height
 
     def at(self, x: int , y: int, back: bool = False) -> Optional['Tile']:
         (x,y) = self.wrap(x,y)
-        tiles = self.front_tiles if not back else self.back_tiles
-        return tiles[y][x] if self.within_bounds(x,y) else None
+        tiles_array = self.front_tiles if not back else self.back_tiles
+        return tiles_array[y][x] if self.within_bounds(x,y) else None
     
     def set(self, x: int , y: int, tile: Optional['Tile'], back: bool = False) -> Optional['Tile']:
         (x,y) = self.wrap(x,y)
         current = self.at(x, y, back)
         if self.within_bounds(x,y): 
-            tiles = self.front_tiles if not back else self.back_tiles
-            tiles[y][x] = tile
+            tiles_array = self.front_tiles if not back else self.back_tiles
+            tiles_array[y][x] = tile
         return current
 
     def replace(self, tile : 'Tile', by : Union['Tile', type, None]) -> None:
@@ -298,8 +298,8 @@ class Cave:
         return True
 
     def tiles(self, cond: Optional[Union[int,type]] = None, back: bool = False) -> Iterable['Tile']:
-        tiles = self.front_tiles if not back else self.back_tiles
-        for row in tiles:
+        tiles_array = self.front_tiles if not back else self.back_tiles
+        for row in tiles_array:
             for tile in row:
                 if tile is not None and tile.is_kind_of(cond): yield tile
 
@@ -362,15 +362,11 @@ class CaveView(arcade.View):
         if width > cave.width * Game.TILE_SIZE:
             cx = (cave.width * Game.TILE_SIZE - width) / 2
         else:
-            cx = x - width / 2
-            if cx < 0: cx = 0
-            if cx > cave.width * Game.TILE_SIZE - width : cx = cave.width * Game.TILE_SIZE - width
+            cx = min(max(x - width / 2, 0), cave.width * Game.TILE_SIZE - width)
         if height > (cave.height + 1) * Game.TILE_SIZE:
             cy = ((cave.height + 1) * Game.TILE_SIZE - height) / 2
         else:
-            cy = y - height / 2
-            if cy < 0 : cy = 0
-            if cy > (cave.height + 1) * Game.TILE_SIZE - height : cy = (cave.height +1) * Game.TILE_SIZE - height
+            cy = min(max(y - height / 2, 0), (cave.height + 1) * Game.TILE_SIZE - height)
         self.camera.move_to((cx, cy) , speed)
 
     def print(self, x: int, w: int, text: str) -> None:
@@ -445,8 +441,7 @@ class Game(arcade.Window):
 
     def create_players(self, nb_players: Optional[int] = None) -> None : 
         if nb_players is None: nb_players = len(self.players)
-        if nb_players < 1: nb_players = 1
-        if nb_players > 4: nb_players = 4
+        nb_players = min(max(nb_players, 1), 4)
         self.players = [ Player(self, i) for i in range(nb_players) ]
     
     def setup(self) -> None:
@@ -458,19 +453,19 @@ class Game(arcade.Window):
         #self.toggle_music()
     
     def toggle_music(self) -> None:
-        if self.music_player == None: 
+        if self.music_player is None: 
             self.music_player = Game.music.play(0.1, 0, True)
             if self.cave.status == Cave.PAUSED: self.music_player.pause()
         else: self.music_player.delete() ; self.music_player = None
 
     def pause(self) -> None:
         self.cave.pause()
-        if self.music_player != None:
+        if self.music_player is not None:
             if self.cave.status == Cave.PAUSED: self.music_player.pause()
             else: self.music_player.play()
 
     def center_on(self, x, y, speed = 1) -> None:
-        if self.current_view is not None:self.current_view.center_on(x, y, speed)
+        if self.current_view is not None: self.current_view.center_on(x, y, speed)
 
     def on_loaded(self) -> None:
         if self.current_view is not None: self.current_view.on_loaded()
@@ -479,11 +474,11 @@ class Game(arcade.Window):
         if not symbol in self.keys: self.keys.append(symbol)
         if symbol == arcade.key.NUM_ADD : self.cave.next_level()
         elif symbol == arcade.key.NUM_SUBTRACT : self.cave.next_level(self.cave.level - 1)
-        elif (symbol == arcade.key.NUM_MULTIPLY or symbol == arcade.key.F5):
+        elif (symbol in (arcade.key.NUM_MULTIPLY, arcade.key.F5)):
             self.create_players() ; self.cave.restart_level()
-        elif (symbol == arcade.key.NUM_DIVIDE  or symbol == arcade.key.F3): 
+        elif (symbol in (arcade.key.NUM_DIVIDE, arcade.key.F3)):
             self.create_players(len(self.players) % 4 + 1) ; self.cave.restart_level()
-        elif (symbol == arcade.key.ENTER or symbol == arcade.key.F11 or (symbol == arcade.key.ESCAPE and self.fullscreen) ):
+        elif (symbol in (arcade.key.ENTER, arcade.key.F11) or (symbol == arcade.key.ESCAPE and self.fullscreen) ):
             self.set_fullscreen(not self.fullscreen)
         elif symbol == arcade.key.F9: self.toggle_music()
         elif symbol == arcade.key.SPACE: self.pause()
@@ -499,7 +494,8 @@ def main() -> None:
     arcade.run()
 
 if __name__ == '__main__':
-    import tiles, custom_tiles
+    import tiles
+    import custom_tiles
     tiles.register(Tile)
     custom_tiles.register(Tile)
     main()

@@ -44,6 +44,7 @@ class ExpandingWall(Wall):
                 tile.try_move(ix, iy)
 
 class IActivable(Interface):
+    ''' Interface. Something that may ba activated or used. '''
     def try_activate(self, _by: Tile, _ix: int, _iy: int) -> bool : return False
                     
 class Pushable(Tile, IActivable):
