@@ -22,16 +22,24 @@ class Tile(arcade.Sprite):
     def __init__(self, cave: Cave, x: int, y: int, n: int = 1) -> None:
         super().__init__(None, Tile.TILE_SCALE)
         self.nb_skins = 0
-        for i in range(n): self.add_skin(type(self).__name__, i)
+        for i in range(n): self.add_skin(type(self), i)
         self.cave = cave ; self.x = x ; self.y = y ; self.dir = (0, 0)
         self.wait = 0 ; self.speed = Tile.DEFAULT_SPEED
         self.moved = self.moving = False ; self.priority = Tile.PRIORITY_MEDIUM
         self.compute()
 
-    def add_skin(self, name: str, num: int, flip_h: bool = False, flip_v: bool = False) -> None: 
-        texture = arcade.load_texture(f'res/{name}{Tile.TILE_SIZE}-{num}.png', 0,0, Tile.TILE_SIZE, Tile.TILE_SIZE, flip_h, flip_v)
-        self.append_texture(texture) ; self.nb_skins += 1
-        if self.nb_skins == 1: self.set_skin(0)
+    def add_skin(self, kind: Union[str, type], num: int, flip_h: bool = False, flip_v: bool = False) -> None: 
+        name = kind.__name__ if isinstance(kind, type) else kind
+        file_name = f'res/{name}{Tile.TILE_SIZE}-{num}.png'
+        try:
+            texture = arcade.load_texture(file_name, 0,0, Tile.TILE_SIZE, Tile.TILE_SIZE, flip_h, flip_v)
+            self.append_texture(texture) ; self.nb_skins += 1
+            if self.nb_skins == 1: self.set_skin(0)
+        except BaseException as err:
+            if isinstance(kind, type) and len(kind.__bases__) > 0:
+               self.add_skin(kind.__bases__[0], num, flip_h, flip_v)
+            else: raise Exception(f'Resource not found {file_name}', err)
+
     def set_skin(self, i: int) -> None: self.skin = i; self.set_texture(i)
     def next_skin(self) -> None: self.set_skin( (self.skin+1) % self.nb_skins )
 
@@ -109,7 +117,7 @@ class ExpandingWall(Wall):
     ''' An expanding brick wall that "grows" sideways whenever possible. '''
     def __init__(self, cave: Cave, x: int, y: int) -> None:
         super().__init__(cave, x, y, 2)
-        self.add_skin(ExpandingWall.__name__, 1, True)
+        self.add_skin(ExpandingWall, 1, True)
         self.horizontal = True ; self.speed /= 2
         self.try_wait()
 
@@ -210,7 +218,7 @@ class Entry(Tile):
     sound = Sound(":resources:sounds/jump4.wav")
     def __init__(self, cave: Cave, x: int, y: int) -> None:
         super().__init__(cave, x, y, 0)
-        self.add_skin(Exit.__name__, 1)
+        self.add_skin(Exit, 1)
         self.wait = Entry.WAIT_OPEN
         self.once = False
 
@@ -376,7 +384,7 @@ class MagicWall(BrickWall):
     ''' An enchanted brick wall. A boulder or diamond that hits the wall gets changed into a diamond or boulder respectively, and falls through. '''
     def __init__(self, cave: Cave, x: int, y: int) -> None:
         super().__init__(cave, x, y, 3)
-        self.add_skin(BrickWall.__name__, 0)
+        self.add_skin(BrickWall, 0)
 
     def tick(self) -> None:
         if random.randint(0, 6) == 0: self.set_skin(random.randint(0, self.nb_skins - 1))
@@ -401,7 +409,7 @@ class Amoeba(Tile):
     DEATH_SIZE = 200
     def __init__(self, cave: Cave, x: int, y: int) -> None:
         super().__init__(cave, x, y)
-        self.add_skin(Amoeba.__name__, 0, True, False) ; self.add_skin(Amoeba.__name__, 0, False, True) ; self.add_skin(Amoeba.__name__, 0, True, True) 
+        self.add_skin(Amoeba, 0, True, False) ; self.add_skin(Amoeba, 0, False, True) ; self.add_skin(Amoeba, 0, True, True) 
         self.set_skin(random.randint(0, self.nb_skins - 1))
         self.try_wait()
         self.trapped = False
