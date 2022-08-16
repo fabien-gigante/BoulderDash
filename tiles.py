@@ -68,7 +68,7 @@ class Weighted(Pushable):
         self.gravity = -1
 
     def can_move(self, ix: int, iy: int)  -> bool:
-        return (self.gravity == 0 or iy == 0 or iy ==self.gravity) and super().can_move(ix, iy)
+        return (self.gravity == 0 or iy == 0 or iy == self.gravity) and super().can_move(ix, iy)
 
     def tick(self) -> None:
         if self.gravity == 0 : return
@@ -81,7 +81,14 @@ class Weighted(Pushable):
 
     def try_roll(self, ix: int) -> bool:
         below = self.neighbor(0, self.gravity)
-        return isinstance(below, IRounded) and self.can_move(ix, self.gravity) and self.try_move(ix, 0)
+        if isinstance(below, IRounded) and self.can_move(ix, 0):
+            # pretend we already moved (doors, portals don't like diagonal moves)
+            (x,y) = (self.x, self.y)
+            (self.x, self.y) = self.offset(ix, 0) 
+            would_fall = self.can_move(0, self.gravity)
+            (self.x, self.y) = (x,y)
+            return would_fall and self.try_move(ix, 0)
+        return False
 
 class Massive(Weighted, IRounded):
     ''' A tile so massive it can crush creatures. '''
@@ -128,7 +135,7 @@ class Diamond(Massive, ICollectable, IMutable):
 
 class Explosion(Tile):
     ''' An explosition tile. Instant visual effect only, essentially behaves as an empty tile. '''
-    WAIT_CLEAR = .125 # seconds
+    WAIT_CLEAR = .25 # seconds
     sound_explosion = Sound(":resources:sounds/explosion2.wav")
     def __init__(self, cave: Cave, x: int, y: int) -> None:
         super().__init__(cave, x, y, 4)
