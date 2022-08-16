@@ -198,11 +198,20 @@ class Lever(Tile, IActivable, IFragile):
         for door in self.cave.tiles(TriggeredDoor):
            if self.id == door.id: door.trigger(self)
 
+class Letter(BackTile):
+    ''' A background tile in the shape of a letter that spells out a message. '''
+    def __init__(self, cave: Cave, x: int, y: int) -> None:
+        super().__init__(cave, x, y, 0)
+        count = len([*self.cave.tiles(Letter)])
+        msg = self.cave.map['message'].upper()
+        self.char = msg[ count % len(msg) ]
+        super().add_skin(type(self), ord(self.char) - ord('A'))
+
 # Registrations
 def register(registry):
     registry.global_updates.append(Crate.on_global_update)
     registry.registered_tiles = {
         **registry.registered_tiles,
        'k': CrackedBoulder, 'n': Mineral,'c': WoodCrate, 'h': MetalCrate, '+': CrateTarget,
-       '♀': Girl, 'l': Balloon, 'p': Portal, 'g': Energizer, '*': SmallDiamond,
+       '♀': Girl, 'l': Balloon, 'p': Portal, 'g': Energizer, '*': SmallDiamond, 'µ': Letter,
        'D': ActivableDoor, 'L': LockedDoor, '%': Key, 'T': TriggeredDoor, '/': Lever }

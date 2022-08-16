@@ -1,4 +1,4 @@
-''' Definitions of all official and custom maps '''
+﻿''' Definitions of all official and custom maps '''
 
 CAVE_MAPS = [
 
@@ -118,9 +118,9 @@ CAVE_MAPS = [
         ]
     },
     { # Level 25,
-        'goal': 1,
+        'goal': 1, 'message': 'and',
         'map': ["WWWWWWWWWWWWWWWWWWWW",
-                "Wwwwww. .. . ... ..W",
+                "Wwwwww. .µµµ ... ..W",
                 "Wwrwrw    /  .. E. W",
                 "WwTwTw.. ./..  ....W",
                 "Ww   w. .. . ... . W",
@@ -129,7 +129,7 @@ CAVE_MAPS = [
                 "Ww  ww . . ... . ..W",
                 "Ww   w  ..  .. . ..W",
                 "Wwwwmw. . .. ... . W",
-                "W     . .   .. .  .X",
+                "W     . . .... .  .X",
                 "WWWWWWWWWWWWWWWWWWWW"]
     }
 ]

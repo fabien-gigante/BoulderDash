@@ -209,7 +209,7 @@ class Cave:
         self.status = Cave.NOT_LOADED ; self.wait = 0
         self.front_tiles = [] ; self.back_tiles = []
         self.miner_type = None ; self.geometry = None
-        self.height = self.width = 0
+        self.height = self.width = 0 ; self.map = None
         self.time_remaining = 0
         self.next_level(1)
 
@@ -219,19 +219,19 @@ class Cave:
         if self.status != Cave.GAME_OVER: self.status = Cave.STARTING
         self.wait = 0
         self.front_tiles = [] ; self.back_tiles = []
-        cave = CAVE_MAPS[self.level - 1]
-        type_name = cave['miner'] if 'miner' in cave else 'Miner'
+        self.map = CAVE_MAPS[self.level - 1]
+        type_name = self.map['miner'] if 'miner' in self.map else 'Miner'
         self.miner_type = next(value for (_, value) in types.items() if value is not None and value.__name__ == type_name)
-        self.height = len(cave['map'])
-        self.width = len(cave['map'][0])
-        self.to_collect = cave['goal']
-        self.geometry = globals()[cave['geometry']]() if 'geometry' in cave else Geometry()
-        self.time_remaining = cave['time'] if 'time' in cave else Cave.DEFAULT_MAXTIME
+        self.height = len(self.map['map'])
+        self.width = len(self.map['map'][0])
+        self.to_collect = self.map['goal']
+        self.geometry = globals()[self.map['geometry']]() if 'geometry' in self.map else Geometry()
+        self.time_remaining = self.map['time'] if 'time' in self.map else Cave.DEFAULT_MAXTIME
         for y in range(self.height):
             self.back_tiles.append([None for _ in range(self.width)])
             self.front_tiles.append([])
             for x in range(self.width):
-                key = cave['map'][self.height -1 - y][x]
+                key = self.map['map'][self.height -1 - y][x]
                 tile_type = types[key] if key in types else Unknown
                 tile = tile_type(self, x, y) if not tile_type is None else None
                 self.front_tiles[y].append(tile)
