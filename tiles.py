@@ -48,13 +48,13 @@ class ExpandingWall(Wall):
 class IActivable(Interface):
     ''' Interface. Something that may ba activated or used. '''
     def try_activate(self, _by: Tile, _ix: int, _iy: int) -> bool : return False
-                    
+
 class Pushable(Tile, IActivable):
     ''' An abstract tile that can be pushed by miners. '''
     sound = Sound(":resources:sounds/hurt1.wav")
-    def try_activate(self, _by: Tile, ix:int, iy:int) -> bool : 
+    def try_activate(self, _by: Tile, ix:int, iy:int) -> bool :
         if self.try_move(ix, iy): Pushable.sound.play() ; return True
-        else: return False
+        return False
 
 class IFragile(Interface):
     ''' Interface. Something that may crack (on react in some other way) when fallen upon. '''
@@ -67,18 +67,18 @@ class Weighted(Pushable):
         super().__init__(cave, x, y, n)
         self.gravity = -1
 
-    def can_move(self, ix: int, iy: int)  -> bool: 
+    def can_move(self, ix: int, iy: int)  -> bool:
         return (self.gravity == 0 or iy == 0 or iy ==self.gravity) and super().can_move(ix, iy)
-    
+
     def tick(self) -> None:
         if self.gravity == 0 : return
         if self.try_move(0, self.gravity): return
-        elif self.moving: self.end_fall(self.neighbor(0, self.gravity))
+        if self.moving: self.end_fall(self.neighbor(0, self.gravity))
         ix = random.choice([-1, +1])
         _ = self.try_roll(ix) or self.try_roll(-ix)
-    
+
     def end_fall(self, onto: Tile) -> None: pass
-    
+
     def try_roll(self, ix: int) -> bool:
         below = self.neighbor(0, self.gravity)
         return isinstance(below, IRounded) and self.can_move(ix, self.gravity) and self.try_move(ix, 0)
@@ -114,7 +114,7 @@ class Diamond(Massive, ICollectable, IMutable):
     def can_be_occupied(self, by: Tile, _ix: int, _iy: int) -> bool: return isinstance(by, Miner)
     def can_break(self) -> bool:  return False
 
-    def collect(self) -> int: 
+    def collect(self) -> int:
         Diamond.sound.play()
         self.cave.collected += 1
         return 5 if self.cave.is_complete() else 2
@@ -178,17 +178,17 @@ class Exit(Tile):
             Entry.sound.play()
             self.opened = True ; self.set_skin(1)
 
-    def can_be_occupied(self, by: Tile, _ix: int, _iy: int) -> bool: 
+    def can_be_occupied(self, by: Tile, _ix: int, _iy: int) -> bool:
         return isinstance(by, Miner) and self.opened
     def can_break(self) -> bool:  return False
 
-    def on_destroy(self) -> None: 
+    def on_destroy(self) -> None:
         Exit.sound.play()
         self.cave.set_status(Cave.SUCCEEDED)
 
 class Creature(Tile):
     ''' A creature in the cave, either miner or insect. Crushed by falling massive tiles. Explodes when dying. '''
-    def can_be_occupied(self, by: Tile, _ix: int, _iy: int) -> bool: 
+    def can_be_occupied(self, by: Tile, _ix: int, _iy: int) -> bool:
         return isinstance(by, Massive) and by.moving
 
     def on_destroy(self) -> None: self.cave.explode(self.x, self.y, Explosion)
@@ -244,20 +244,21 @@ class Insect(Creature, ICollectable):
         self.frightened = 0
         self.rotation = 0
 
-    def can_be_occupied(self, by: Tile, ix: int, iy: int) -> bool: 
+    def can_be_occupied(self, by: Tile, ix: int, iy: int) -> bool:
         return super().can_be_occupied(by, ix, iy) or isinstance(by, Miner)
-    
+
     def try_wander(self) -> bool:
         (ix,iy) = self.dir
         if self.rotation > 0:
             return self.try_move(iy, -ix) or self.try_move(ix, iy) or self.try_move(-iy, ix) or self.try_move(-ix, -iy) or self.try_wait()
-        elif self.rotation < 0:
+        if self.rotation < 0:
             return self.try_move(-iy, ix) or self.try_move(ix, iy) or self.try_move(iy, -ix) or self.try_move(-ix, -iy) or self.try_wait()
+        return False
 
     def collect(self) -> int :
         Diamond.sound_explosion.play()
         return 5 if self.frightened > 0 else 0
-    
+
     def on_update(self, delta_time: float = 1/60) -> None:
         super().on_update(delta_time)
         self.frightened = max(0, self.frightened - delta_time)
@@ -275,13 +276,13 @@ class Insect(Creature, ICollectable):
         # else wander around
         self.try_wander()
 
-    def on_destroy(self) -> None: 
+    def on_destroy(self) -> None:
         if self.frightened == 0 or not isinstance(self.neighbor(0,0), Miner):
             super().on_destroy()
 
 class Firefly(Insect):
     ''' Simplest kind of insect. Wanders clockwise. '''
-    def __init__(self, cave: Cave, x: int, y: int) -> None: 
+    def __init__(self, cave: Cave, x: int, y: int) -> None:
         super().__init__(cave, x, y)
         self.dir = (-1, 0) ; self.rotation = -1
 
@@ -291,7 +292,7 @@ class Butterfly(Insect):
         super().__init__(cave, x, y)
         self.dir = (0, -1) ; self.rotation = +1
 
-    def on_destroy(self) -> None: 
+    def on_destroy(self) -> None:
         if self.frightened == 0 or not isinstance(self.neighbor(0,0), Miner):
             self.cave.explode(self.x, self.y, Diamond)
 
@@ -311,7 +312,7 @@ class MagicWall(BrickWall):
     def on_destroy(self) -> None:
         # won't be destroyed by falling rocks, do its magic instead !
         rock = self.neighbor(0, 0)
-        if isinstance(rock, Weighted): 
+        if isinstance(rock, Weighted):
             if isinstance(rock, IMutable): rock = rock.mutate() ; rock.moving = True
             rock.tick() # continue its fall through...
             self.cave.set(self.x, self.y, self)
@@ -321,7 +322,7 @@ class Amoeba(Tile):
     DEATH_SIZE = 200
     def __init__(self, cave: Cave, x: int, y: int) -> None:
         super().__init__(cave, x, y)
-        self.add_skin(Amoeba, 0, True, False) ; self.add_skin(Amoeba, 0, False, True) ; self.add_skin(Amoeba, 0, True, True) 
+        self.add_skin(Amoeba, 0, True, False) ; self.add_skin(Amoeba, 0, False, True) ; self.add_skin(Amoeba, 0, True, True)
         self.set_skin(random.randint(0, self.nb_skins - 1))
         self.try_wait()
         self.trapped = False

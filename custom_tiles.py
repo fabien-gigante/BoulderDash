@@ -115,7 +115,7 @@ class Crate(Pushable):
 
 class WoodCrate(Crate):
     ''' A fragile wodden crate. Explodes when hit. '''
-    def can_be_occupied(self, by: Tile, _ix: int, _iy: int) -> bool: 
+    def can_be_occupied(self, by: Tile, _ix: int, _iy: int) -> bool:
         return isinstance(by, Massive) and by.moving
     def on_destroy(self) -> None:
         if not self.solved: self.cave.explode(self.x, self.y, Explosion)
@@ -154,7 +154,7 @@ class LockedDoor(Door):
         self.id = len([*self.cave.tiles(LockedDoor)]) % 3
         self.add_skin(type(self), self.id)
     def unlock(self, key: 'Key') -> None :
-        if self.id == key.id: 
+        if self.id == key.id:
             Exit.sound.play()
             self.cave.replace(self, ActivableDoor)
 
@@ -180,7 +180,7 @@ class TriggeredDoor(Door, ITriggerable):
         self.id = len([*self.cave.tiles(TriggeredDoor)]) % 3
         self.add_skin(type(self), self.id)
         self.add_skin(Door, 1)
-    def trigger(self, by: Tile) -> None : 
+    def trigger(self, by: Tile) -> None :
         if self.id == by.id: self.toggle()
 
 class Lever(Tile, IActivable, IFragile):
@@ -202,6 +202,6 @@ def register(registry):
     registry.global_updates.append(Crate.on_global_update)
     registry.registered_tiles = {
         **registry.registered_tiles,
-       'k': CrackedBoulder, 'n': Mineral,'c': WoodCrate, 'h': MetalCrate, '+': CrateTarget, 
+       'k': CrackedBoulder, 'n': Mineral,'c': WoodCrate, 'h': MetalCrate, '+': CrateTarget,
        '♀': Girl, 'l': Balloon, 'p': Portal, 'g': Energizer, '*': SmallDiamond,
        'D': ActivableDoor, 'L': LockedDoor, '%': Key, 'T': TriggeredDoor, '/': Lever }
