@@ -1,7 +1,7 @@
 ﻿''' Standard tiles. '''
 
 from typing import Optional
-import random
+import math, random
 from game import Cave, Player, Sound, Tile, Interface
 
 class ICollectable(Interface):
@@ -131,9 +131,13 @@ class Explosion(Tile):
     WAIT_CLEAR = .125 # seconds
     sound_explosion = Sound(":resources:sounds/explosion2.wav")
     def __init__(self, cave: Cave, x: int, y: int) -> None:
-        super().__init__(cave, x, y)
+        super().__init__(cave, x, y, 4)
         self.wait = Explosion.WAIT_CLEAR
     def can_be_occupied(self, _by: Tile, _ix: int, _iy: int) -> bool: return True
+    def on_update(self, delta_time: float = 1/60) -> None:
+        super().on_update(delta_time)
+        if self.wait > 0:
+            self.set_skin( math.floor(self.nb_skins * (1 - self.wait/Explosion.WAIT_CLEAR)))
     def tick(self) -> None: self.cave.replace(self, None)
 
 class Entry(Tile):

@@ -134,7 +134,6 @@ CAVE_MAPS = [
     }
 ]
 
-
 ''' Empty templates
 
             "WWWWWWWWWWWWWWWWWWWW",
