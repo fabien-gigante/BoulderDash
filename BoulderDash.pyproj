@@ -28,7 +28,7 @@
     <Compile Include="custom_tiles.py" />
     <Compile Include="game.py" />
     <Compile Include="tiles.py" />
-    <Compile Include="caves.py" />
+    <Compile Include="maps.py" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="README.md" />

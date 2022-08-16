@@ -1,4 +1,6 @@
-﻿from typing import Optional, Tuple
+﻿''' Custom tiles. '''
+
+from typing import Optional, Tuple
 import math
 from game import Interface, Sound, Player, Cave, Tile
 from tiles import ICollectable, IActivable, IRounded, IFragile, Explosion, Diamond, Weighted, Massive, Pushable, Boulder, Miner, Insect, MetalWall, Exit

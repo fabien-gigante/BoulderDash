@@ -1,4 +1,6 @@
-﻿from typing import Optional
+﻿''' Standard tiles. '''
+
+from typing import Optional
 import random
 from game import Cave, Player, Sound, Tile, Interface
 
@@ -198,7 +200,6 @@ class Miner(Creature):
     def __init__(self, cave: Cave, x: int, y: int, player: Player) -> None:
         super().__init__(cave, x, y, 4)
         self.set_skin(player.num % self.nb_skins)
-        self.using = None
         self.player = player
         self.priority = Tile.PRIORITY_HIGH
 
@@ -208,7 +209,6 @@ class Miner(Creature):
 
     def on_moved(self, into: Optional[Tile]) -> None:
         if isinstance(into, ICollectable): self.player.score += into.collect()
-        self.using = None
 
     def focus(self, speed = CAMERA_SPEED) -> None: super().focus(speed)
     def on_update(self, delta_time: float = 1/60) -> None:
@@ -227,16 +227,9 @@ class Miner(Creature):
 
     def try_use(self, ix:int, iy:int) -> bool:
         used = self.neighbor(ix, iy)
-        if isinstance(used, IActivable):
-            if self.using == (ix, iy):
-                if used.try_activate(self, ix, iy): 
-                    self.using = None
-                    return self.try_move(ix, iy, False) or self.try_wait()
-            else:
-                self.dir = (ix, iy)
-                self.using = self.dir
-                return self.try_wait()
-        return False
+        if not isinstance(used, IActivable): return False
+        if self.moving: return self.try_wait()
+        return used.try_activate(self, ix, iy) and (self.try_move(ix, iy, False) or self.try_wait())
 
     def on_destroy(self) -> None:
         super().on_destroy()

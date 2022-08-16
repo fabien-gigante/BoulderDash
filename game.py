@@ -1,9 +1,9 @@
-﻿from typing import Optional, Union, Tuple, List, Iterable
+﻿''' Clone of the Boulder Dash game, with some tweaks... '''
+
+from typing import Optional, Union, Tuple, List, Iterable
 from collections import namedtuple
-import time
-import math
-import pyglet
-import arcade
+import time, math
+import pyglet, arcade
 
 class Sound:
     ''' An audio media in the game. Played at moderate volume and at most once per frame (for a given sound). '''
@@ -197,7 +197,7 @@ class Cave:
     WAIT_STATUS = 0.75 # seconds
     DEFAULT_MAXTIME = 120 # seconds
 
-    from caves import CAVES
+    from maps import CAVE_MAPS
 
     def __init__(self, game: 'Game') -> None:
         self.game = game
@@ -215,7 +215,7 @@ class Cave:
         if self.status != Cave.GAME_OVER: self.status = Cave.STARTING    
         self.wait = 0
         self.front_tiles = [] ; self.back_tiles = []
-        cave = Cave.CAVES[self.level - 1]
+        cave = Cave.CAVE_MAPS[self.level - 1]
         type_name = cave['miner'] if 'miner' in cave else 'Miner'
         self.miner_type = next(value for (_, value) in types.items() if value is not None and value.__name__ == type_name)
         self.height = len(cave['map'])
@@ -236,8 +236,9 @@ class Cave:
 
     def next_level(self, level : Optional[int] = None) -> None:
         self.level = self.level + 1 if level is None else level
-        if self.level < 1 : self.level += len(Cave.CAVES)
-        elif self.level > len(Cave.CAVES) : self.level -= len(Cave.CAVES)
+        nb_levels = len(Cave.CAVE_MAPS)
+        if self.level < 1 : self.level += nb_levels
+        elif self.level > nb_levels : self.level -= nb_levels
         self.load()
 
     def restart_level(self) -> None: self.next_level(self.level)
@@ -336,6 +337,8 @@ class Cave:
 class CaveView(arcade.View):
     ''' The main view of the game when in play. Renders the current cave. Manages cameras. '''
 
+    COLOR_OUT_OF_TIME = (32,0,0)
+
     def __init__(self, game: 'Game') -> None:
         super().__init__(game)
         self.game = game
@@ -382,13 +385,14 @@ class CaveView(arcade.View):
     def on_draw(self) -> None:
         #start_time = time.time()
         self.camera.use()
+        arcade.set_background_color(CaveView.COLOR_OUT_OF_TIME if self.game.cave.time_remaining <= 5 else arcade.color.BLACK)
         self.clear()
         self.sprite_list.draw()
         self.camera_gui.use()
         arcade.draw_lrtb_rectangle_filled(0, self.window.width, self.window.height, self.window.height - Game.TILE_SIZE, (0,0,0,192))
         self.print( 0, 3, 'LVL')   ; self.print( 0, -3, f'{self.game.cave.level:02}')
         self.print( 3.5, 2.5, 'LIFE')  ; self.print( 3.5, -2.5, f'{self.game.players[0].life:01}')
-        self.print( 6.5, 3.5, 'TIME')    ; self.print( 6.5, -3.5, f'{math.floor(self.game.cave.time_remaining):03}')
+        self.print( 6.5, 3.5, 'TIME')    ; self.print( 6.5, -3.5, f'{math.ceil(self.game.cave.time_remaining):03}')
         if self.game.cave.collected <= self.game.cave.to_collect:
             self.print(10.5, 3.5, 'GOAL')    ; self.print(10.5, -3.5, f'{self.game.cave.to_collect-self.game.cave.collected:02}')
         else:
@@ -448,7 +452,6 @@ class Game(arcade.Window):
         self.controllers = arcade.get_game_controllers()
         for ctrl in self.controllers: ctrl.open()
         self.create_players() ; self.cave = Cave(self)
-        arcade.set_background_color(arcade.color.BLACK)
         self.show_view(CaveView(self))
         #self.toggle_music()
     
@@ -489,13 +492,9 @@ class Game(arcade.Window):
     def over(self) -> None:
         Game.sound_over.play()
 
-def main() -> None:
-    Game().setup()
-    arcade.run()
-
 if __name__ == '__main__':
-    import tiles
-    import custom_tiles
+    import tiles, custom_tiles
     tiles.register(Tile)
     custom_tiles.register(Tile)
-    main()
+    Game().setup()
+    arcade.run()

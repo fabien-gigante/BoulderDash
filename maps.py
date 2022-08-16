@@ -1,6 +1,6 @@
 ''' Definitions of all official and custom maps '''
 
-CAVES = [
+CAVE_MAPS = [
 
 # Official maps : Levels 1 - 20
     { 'goal': 12, 'map': ["WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW","W......_..d.r_.....r.r......._....r....W","W.rEr......_.........rd..r...._....._..W","W.........._..r.....r.r..r........r....W","Wr.rr.........r......r..r....r...r.....W","Wr._r........._r..r........r......r.rr.W","W..._..r........r.....r._r........r.rr.W","Wwwwwwwwwwwwwwwwwwwwwwwwwwwwwww...r..r.W","W._...r..d._..r.r..........d.rd......_.W","W..d.....r....._........rr_r..r....r...W","W...r..r.r..............r_.r..r........W","W.r.....r........rrr.......r.._.d....r.W","W.d.._..r.__.....r.rd..d....r...r..d._.W","W._r..............r_r..r........d.....rW","W........wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwW","W_r.........r...d....r.....r...r.......W","W_r........._r..r........r......r.rr..XW","W._..r........r.....r.__....d...r.rr...W","W....rd..r........r......r.rd......r...W","W..._..r._..r.rr.........r.rd......_..rW","W.d...._....._........._.r..r....r...r.W","WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW"]},
