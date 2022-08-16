@@ -317,8 +317,8 @@ class MagicWall(BrickWall):
         if random.randint(0, 6) == 0: self.set_skin(random.randint(0, self.nb_skins - 1))
         super().tick()
 
-    def can_be_occupied(self, by: 'Tile', _ix: int, _iy: int) -> bool:
-        return isinstance(by, Weighted) and by.moving
+    def can_be_occupied(self, by: 'Tile', _ix: int, iy: int) -> bool:
+        return isinstance(by, Weighted) and by.moving and iy != 0
 
     def on_destroy(self) -> None:
         # won't be destroyed by falling rocks, do its magic instead !
