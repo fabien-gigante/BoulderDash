@@ -318,13 +318,15 @@ class MagicWall(BrickWall):
         super().tick()
 
     def can_be_occupied(self, by: 'Tile', _ix: int, iy: int) -> bool:
-        return isinstance(by, Weighted) and by.moving and iy != 0
+        return isinstance(by, Weighted) and by.moving
 
     def on_destroy(self) -> None:
         # won't be destroyed by falling rocks, do its magic instead !
         rock = self.neighbor(0, 0)
         if isinstance(rock, Weighted):
-            if isinstance(rock, IMutable): rock = rock.mutate() ; rock.moving = True
+            (_,iy) = rock.dir
+            if isinstance(rock, IMutable) and iy != 0:
+                rock = rock.mutate() ; rock.moving = True
             rock.tick() # continue its fall through...
             self.cave.set(self.x, self.y, self)
 
