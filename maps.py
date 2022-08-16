@@ -116,11 +116,39 @@ CAVE_MAPS = [
             "W**************************W",
             "WWWWWWWWWWWWWWWWWWWWWWWWWWWW",
         ]
+    },
+    { # Level 25,
+        'goal': 1,
+        'map': ["WWWWWWWWWWWWWWWWWWWW",
+                "Wwwwww. .. . ... ..W",
+                "Wwrwrw    /  .. E. W",
+                "WwTwTw.. ./..  ....W",
+                "Ww   w. .. . ... . W",
+                "Ww  ww . . ... . ..W",
+                "Ww www. .. ... . ..W",
+                "Ww  ww . . ... . ..W",
+                "Ww   w  ..  .. . ..W",
+                "Wwwwmw. . .. ... . W",
+                "W     . .   .. .  .X",
+                "WWWWWWWWWWWWWWWWWWWW"]
     }
 ]
 
 
-''' Empty template
+''' Empty templates
+
+            "WWWWWWWWWWWWWWWWWWWW",
+            "W. .... ... .. .. .W",
+            "W... .... ... . ...W",
+            "W.. . ... .. .. ...W",
+            "W . ... ... ..  ...W",
+            "W.. . ... . .. .. .W",
+            "W. ..   . ..  ... .W",
+            "W..  ... ... .   ..W",
+            "W. . ... . . ... ..W",
+            "W..  .. . ... .  ..W",
+            "W. . .. ..  ....   W",
+            "WWWWWWWWWWWWWWWWWWWW"]
 
 ["WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW",
  "W......................................W",

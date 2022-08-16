@@ -40,29 +40,34 @@ class Tile(arcade.Sprite):
     PRIORITY_HIGH = 0
     PRIORITY_MEDIUM = 1
     PRIORITY_LOW = 2
+    TILESHEET_MARGIN = TILE_SIZE/16
 
     registered_tiles = {}
     global_updates = []
     def __init__(self, cave: 'Cave', x: int, y: int, n: int = 1) -> None:
         super().__init__(None, Game.TILE_SIZE / Tile.TILE_SIZE)
-        self.nb_skins = 0 ; self.skin = None
-        for i in range(n): self.add_skin(type(self), i)
+        self.nb_skins = 0 ; self.skin = None ;
+        if n > 0: self.add_skins(type(self), range(n))
         self.cave = cave ; self.back = False ; self.x = x ; self.y = y ; self.dir = (0, 0)
         self.wait = 0 ; self.speed = Tile.DEFAULT_SPEED
         self.moved = self.moving = False ; self.priority = Tile.PRIORITY_MEDIUM
         self.compute()
 
-    def add_skin(self, kind: Union[str, type], num: int, flip_h: bool = False, flip_v: bool = False) -> None:
+    def add_skins(self, kind: Union[str, type], rng: Iterable[int], flip_h: bool = False, flip_v: bool = False) -> None:
         name = kind.__name__ if isinstance(kind, type) else kind
-        file_name = f'res/{name}{Tile.TILE_SIZE}-{num}.png'
+        file_name = f'res/{name}{Tile.TILE_SIZE}.png'
         try:
-            texture = arcade.load_texture(file_name, 0,0, Tile.TILE_SIZE, Tile.TILE_SIZE, flip_h, flip_v)
-            self.append_texture(texture) ; self.nb_skins += 1
-            if self.nb_skins == 1: self.set_skin(0)
+            offsets = [(i * (Tile.TILE_SIZE + Tile.TILESHEET_MARGIN), 0, Tile.TILE_SIZE, Tile.TILE_SIZE) for i in rng]
+            textures = arcade.load_textures(file_name, offsets, flip_h, flip_v)
+            self.nb_skins += len(textures)
+            for texture in textures: self.append_texture(texture)
+            if self.skin is None and self.nb_skins > 0: self.set_skin(0)
         except FileNotFoundError as err:
             if isinstance(kind, type) and len(kind.__bases__) > 0:
-                self.add_skin(kind.__bases__[0], num, flip_h, flip_v)
+                self.add_skins(kind.__bases__[0], rng, flip_h, flip_v)
             else: raise err
+    def add_skin(self, kind: Union[str, type], num: int, flip_h: bool = False, flip_v: bool = False) -> None:
+        self.add_skins(kind, [num], flip_h, flip_v)
     def set_skin(self, i: int) -> None: self.skin = i; self.set_texture(i)
     def next_skin(self) -> None: self.set_skin( (self.skin+1) % self.nb_skins )
 
@@ -435,7 +440,7 @@ class Game(arcade.Window):
 
     def __init__(self):
         super().__init__(Game.WIDTH, Game.HEIGHT, Game.TITLE, vsync = True)
-        self.set_icon(pyglet.image.load('res/Miner64-0.png'))
+        self.set_icon(pyglet.image.load('res/Boulder64.png'))
         self.keys = []
         self.controllers = []
         self.players = []
