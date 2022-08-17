@@ -227,8 +227,8 @@ class Cave:
         self.to_collect = self.map['goal']
         self.geometry = globals()[self.map['geometry']]() if 'geometry' in self.map else Geometry()
         self.time_remaining = self.map['time'] if 'time' in self.map else Cave.DEFAULT_MAXTIME
-        self.front_tiles = [[None for _ in range(self.width)] for _ in range(self.height)]
-        self.back_tiles = [[None for _ in range(self.width)] for _ in range(self.height)]
+        self.front_tiles = [[None] * self.width for _ in range(self.height)]
+        self.back_tiles = [[None] * self.width for _ in range(self.height)]
         for y in reversed(range(self.height)):
             for x in range(self.width):
                 key = self.map['map'][self.height -1 - y][x]
