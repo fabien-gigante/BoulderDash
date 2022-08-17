@@ -210,8 +210,8 @@ class Letter(BackTile):
     def __init__(self, cave: Cave, x: int, y: int) -> None:
         super().__init__(cave, x, y, 0)
         count = len([*self.cave.tiles(Letter)])
-        msg = self.cave.map['message'].upper()
-        self.char = msg[ count % len(msg) ]
+        msg = self.cave.map['message']
+        self.char = msg[ count % len(msg) ].upper()
         super().add_skin(type(self), ord(self.char) - ord('A'))
 
 # Registrations
