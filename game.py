@@ -227,14 +227,13 @@ class Cave:
         self.to_collect = self.map['goal']
         self.geometry = globals()[self.map['geometry']]() if 'geometry' in self.map else Geometry()
         self.time_remaining = self.map['time'] if 'time' in self.map else Cave.DEFAULT_MAXTIME
-        for y in range(self.height):
-            self.back_tiles.append([None for _ in range(self.width)])
-            self.front_tiles.append([])
+        self.front_tiles = [[None for _ in range(self.width)] for _ in range(self.height)]
+        self.back_tiles = [[None for _ in range(self.width)] for _ in range(self.height)]
+        for y in reversed(range(self.height)):
             for x in range(self.width):
                 key = self.map['map'][self.height -1 - y][x]
                 tile_type = types[key] if key in types else Unknown
-                tile = tile_type(self, x, y) if not tile_type is None else None
-                self.front_tiles[y].append(tile)
+                if tile_type is not None: self.front_tiles[y][x] = tile_type(self, x, y)
         for tile in self.tiles(): tile.on_loaded()
         self.game.on_loaded()
 

@@ -118,7 +118,7 @@ CAVE_MAPS = [
         ]
     },
     { # Level 25,
-        'goal': 1, 'message': 'NANDyx',
+        'goal': 1, 'message': 'xyNAND',
         'map': ["WWWWWWWWWWWWWWWWWWWW",
                 "Wwk kW    µ  /. E. W",
                 "WrT TW.   µ  /. ...W",
