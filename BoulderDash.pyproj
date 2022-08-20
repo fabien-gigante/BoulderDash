@@ -32,6 +32,8 @@
     <Compile Include="maps.py" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="LICENSE.txt" />
+    <Content Include="pyproject.toml" />
     <Content Include="README.md" />
     <Content Include="doc\*.png" />
     <Content Include="res\*.png" />
